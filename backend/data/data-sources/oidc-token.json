@@ -1,0 +1,21 @@
+{
+  "id": "oidc-token",
+  "name": "OIDC Token",
+  "description": "Standard OIDC/OAuth2 identity token claims",
+  "category": "Identity",
+  "template": {
+    "identity": {
+      "sub": "user-12345",
+      "email": "demo@example.com",
+      "name": "Demo User",
+      "roles": ["admin", "developer"],
+      "groups": ["engineering", "platform"],
+      "iss": "https://accounts.example.com",
+      "aud": "my-application",
+      "exp": 1732665600,
+      "iat": 1732662000,
+      "nbf": 1732662000,
+      "jti": "unique-token-id-abc123"
+    }
+  }
+}

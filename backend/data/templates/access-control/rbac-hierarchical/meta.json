@@ -1,0 +1,5 @@
+{
+  "title": "Hierarchical Role Inheritance",
+  "description": "Address role explosion with hierarchical RBAC using graph traversal to inherit permissions from parent roles.",
+  "category": "Access Control"
+}

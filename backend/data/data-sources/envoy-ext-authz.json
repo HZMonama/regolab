@@ -1,0 +1,52 @@
+{
+  "id": "envoy-ext-authz",
+  "name": "Envoy External Authorization",
+  "description": "Envoy ext_authz filter check request",
+  "category": "Service Mesh",
+  "template": {
+    "attributes": {
+      "request": {
+        "http": {
+          "method": "GET",
+          "path": "/api/v1/users",
+          "host": "api.example.com",
+          "scheme": "https",
+          "headers": {
+            "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "content-type": "application/json",
+            "x-request-id": "abc-123-def-456"
+          },
+          "protocol": "HTTP/1.1"
+        }
+      },
+      "source": {
+        "address": {
+          "socketAddress": {
+            "address": "10.0.0.5",
+            "portValue": 54321
+          }
+        },
+        "principal": "spiffe://cluster.local/ns/default/sa/client"
+      },
+      "destination": {
+        "address": {
+          "socketAddress": {
+            "address": "10.0.0.10",
+            "portValue": 8080
+          }
+        },
+        "principal": "spiffe://cluster.local/ns/default/sa/server"
+      },
+      "metadataContext": {
+        "filterMetadata": {
+          "envoy.filters.http.jwt_authn": {
+            "verified_jwt": {
+              "sub": "user-123",
+              "iss": "https://auth.example.com"
+            }
+          }
+        }
+      }
+    }
+  }
+}

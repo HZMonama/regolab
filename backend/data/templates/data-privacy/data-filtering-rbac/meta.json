@@ -1,0 +1,5 @@
+{
+  "title": "Data Filtering by Role",
+  "description": "Filter sensitive data fields based on user roles. Admins see everything, users see filtered data, guests see nothing.",
+  "category": "Data Processing"
+}

@@ -1,0 +1,5 @@
+{
+  "title": "Firewall Rules",
+  "description": "Network firewall policy allowing outbound web traffic, SSH from admin networks, DNS, while blocking threat IPs.",
+  "category": "Network & Infrastructure"
+}

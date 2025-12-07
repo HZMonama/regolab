@@ -1,0 +1,262 @@
+// Lezer grammar for Rego (Open Policy Agent's policy language)
+// Based on the Rego language specification: https://www.openpolicyagent.org/docs/latest/policy-language/
+
+// Top-level structure: optional package declaration, followed by imports, then rules
+@top Script {
+  PackageDeclaration?
+  ImportStatement*
+  (Rule | defaultKeyword Rule)*
+}
+
+// Skip whitespace and line comments during parsing
+@skip { space | LineComment }
+
+// Package declaration defines the policy module namespace
+// Example: package example.policy
+PackageDeclaration {
+  kw<"package"> Identifier ("." Identifier)*
+}
+
+// Import statement brings external data or policies into scope
+// Example: import data.users as users
+ImportStatement {
+  kw<"import"> Identifier ("." Identifier)* (kw<"as"> Identifier)?
+}
+
+// Rule structure: head followed by optional body/conditions
+// Supports multiple rule forms: complete, partial, functions, etc.
+Rule {
+  RuleHead
+  (
+    kw<"if"> Body |
+    kw<"else"> Body |
+    AssignOp Expression |
+    kw<"contains"> Expression (kw<"if"> Body)? |
+    Body
+  )?
+}
+
+// Rule head: defines the rule name and optional arguments or keys
+// Examples: allow, users[name], get_user(id)
+RuleHead {
+  Identifier (
+    ArgList |
+    "[" (Identifier | String | Number | Var) "]"
+  )*
+}
+
+// Rule body: block of statements that define conditions
+// Requires at least two statements OR a quantified statement to be unambiguous
+Body {
+  "{" Statement Statement+ "}" |
+  "{" (kw<"some"> | kw<"every">) (Identifier ("," Identifier)* | InExpression) (kw<"with"> Expression (kw<"as"> Expression)?)* ";"? "}" |
+  "{" kw<"not"> Expression (kw<"with"> Expression (kw<"as"> Expression)?)* ";"? "}"
+}
+
+// Statement types: quantifiers (some/every), negation, expressions with optional 'with' mocking
+Statement {
+  (
+    (kw<"some"> | kw<"every">) (Identifier ("," Identifier)* | InExpression) |
+    kw<"not">? Expression
+  )
+  (kw<"with"> Expression (kw<"as"> Expression)?)*
+  ";"?
+}
+
+// Core expression types in Rego
+// Comprehensions must come before BinaryExpression in the list
+// This makes the parser prefer comprehension interpretation
+Expression {
+  Literal |
+  Var |
+  ParenthesizedExpression |
+  ArrayComprehension |
+  SetComprehension |
+  ObjectComprehension |
+  Object |
+  Array |
+  Set |
+  CallExpression |
+  MemberExpression |
+  UnaryExpression |
+  BinaryExpression |
+  Identifier
+}
+
+// Parenthesized expressions for grouping
+ParenthesizedExpression { "(" Expression ")" }
+
+// Function/rule call with arguments
+// Example: count(array)
+CallExpression {
+  (Identifier | Var | MemberExpression) !call ArgList
+}
+
+// Member access for navigating nested structures
+// Example: data.users.alice
+MemberExpression {
+  (Identifier | Var | CallExpression | MemberExpression) !member ("." Identifier | "[" Expression "]")
+}
+
+// Function argument list
+ArgList { "(" commaSep<Expression> ")" }
+
+// Object literal: key-value pairs
+// Example: {"name": "Alice", "age": 30}
+Object { 
+  "{" ObjectItem ("," ObjectItem)* ","? "}" |
+  "{" "}"
+}
+ObjectItem { (String | Number | Boolean | Var | Identifier) !objectItem ":" Expression }
+
+// Array literal
+// Example: [1, 2, 3]
+Array { "[" commaSep<Expression> "]" }
+
+// Set literal - single expression in braces
+// Example: {1, 2, 3}
+// Empty set must use set() constructor
+Set { 
+  kw<"set"> "(" ")" | 
+  "{" Expression ("," Expression)* ","? "}"
+}
+
+// Array comprehension: generate arrays from expressions
+// Example: [x | x := numbers[_]; x > 5]
+// Higher precedence makes this preferred over BinaryExpression
+ArrayComprehension { 
+  "[" Expression !comprehension "|" Body "]" 
+}
+
+// Set comprehension: generate sets from expressions
+// Higher precedence makes this preferred over Set
+SetComprehension { 
+  "{" Expression !comprehension "|" Body "}" 
+}
+
+// Object comprehension: generate objects from key-value expressions
+ObjectComprehension { 
+  "{" ObjectItem !comprehension "|" Body "}" 
+}
+
+// Unary operations: logical NOT and arithmetic negation
+UnaryExpression {
+  !prefix (logicNot | minus) Expression
+}
+
+// Binary operations with precedence levels
+// Using "|" directly instead of bitwiseOr token to avoid overlap
+// Lower precedence makes comprehension preferred when ambiguous
+BinaryExpression {
+  Expression !mult (times | divide) Expression |
+  Expression !add (plus | minus) Expression |
+  Expression !bitwise (bitwiseAnd | "|") Expression |
+  Expression !compare CompareOp Expression |
+  Expression !logic (logicAnd | logicOr) Expression |
+  Expression !assign AssignOp Expression | 
+  Expression !in kw<"in"> Expression
+}
+
+// 'in' expression for iteration (used in some/every quantifiers)
+// Example: some x in array
+InExpression {
+  (Identifier | Var) ("," (Identifier | Var))? kw<"in"> Expression
+}
+
+// Literal values
+Literal {
+  Boolean |
+  Number |
+  String |
+  RawString |
+  kw<"null">
+}
+
+// Boolean literals
+Boolean { 
+  kw<"true"> | kw<"false"> 
+}
+
+// Default keyword for default rule values
+defaultKeyword { 
+  kw<"default"> 
+}
+
+// Helper: comma-separated list with optional trailing comma
+commaSep<content> {
+  "" | content ("," content)* ","?
+}
+
+// Precedence declaration
+// comprehension has HIGHEST priority (listed last) to prefer comprehension interpretation
+@precedence { 
+  assign @right,
+  in @left,
+  logic @left,
+  compare @left,
+  bitwise @left,
+  add @left,
+  mult @left,
+  prefix,
+  objectItem,
+  member @left,
+  call @left,
+  comprehension
+}
+
+// Token definitions
+@tokens {
+  // Identifiers: start with letter or underscore
+  Identifier { $[a-zA-Z_] $[a-zA-Z0-9_]* }
+  
+  // Variables: prefixed with $
+  Var { "$" $[a-zA-Z0-9_]* }
+  
+  // Numbers: integers and floats with optional scientific notation
+  Number { 
+    $[0-9]+ 
+    ("." $[0-9]+)? 
+    ($[eE] ("+" | "-")? $[0-9]+)? 
+  }
+  
+  // Strings: double-quoted with escape sequences
+  String { '"' (!["\\] | "\\" _)* '"' }
+  
+  // Raw strings: backtick-quoted, no escaping
+  RawString { "`" ![`]* "`" }
+  
+  // Line comments: hash to end of line
+  LineComment { "#" ![\n]* }
+  
+  // Whitespace
+  space { $[ \t\n\r]+ }
+  
+  // Comparison operators (longer matches first)
+  CompareOp { "==" | "!=" | "<=" | ">=" | "<" | ">" }
+  
+  // Assignment operators
+  AssignOp { ":=" | "=" }
+
+  // Delimiters and punctuation (including pipe)
+  "(" ")" "[" "]" "{" "}" "." "," ":" ";" "|"
+  
+  // Logical operators
+  logicAnd { "&&" }
+  logicOr { "||" }
+  logicNot { "!" }
+  
+  // Arithmetic operators
+  plus { "+" }
+  minus { "-" }
+  times { "*" }
+  divide { "/" }
+  
+  // Bitwise AND only (pipe "|" is defined above as punctuation)
+  bitwiseAnd { "&" }
+}
+
+// Keyword specialization: converts identifiers to keywords in specific contexts
+kw<term> { @specialize[@name={term}]<Identifier, term> }
+
+// Auto-detect delimiter pairs for error recovery
+@detectDelim

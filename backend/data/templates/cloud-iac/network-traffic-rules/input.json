@@ -1,0 +1,7 @@
+{
+    "source_ip": "10.1.1.100",
+    "dest_ip": "10.1.2.50",
+    "dest_port": 443,
+    "source_service": "web",
+    "dest_service": "api"
+}

@@ -1,0 +1,25 @@
+{
+    "features": {
+        "new_ui": {
+            "enabled": true,
+            "criteria": {
+                "user_percentage": 50
+            }
+        },
+        "advanced_analytics": {
+            "enabled": true,
+            "criteria": {
+                "user_groups": ["premium", "enterprise"]
+            }
+        },
+        "beta_feature": {
+            "enabled": true,
+            "criteria": {
+                "beta_users": ["user456", "user789"]
+            }
+        },
+        "global_feature": {
+            "enabled": true
+        }
+    }
+}

@@ -1,0 +1,5 @@
+{
+  "title": "K8s Label Format Validation",
+  "description": "Validate Kubernetes resource labels format, ensuring costcenter labels follow the required prefix convention.",
+  "category": "Kubernetes"
+}

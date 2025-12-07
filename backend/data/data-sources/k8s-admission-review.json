@@ -1,0 +1,70 @@
+{
+  "id": "k8s-admission-review",
+  "name": "Kubernetes AdmissionReview",
+  "description": "Kubernetes admission controller webhook request",
+  "category": "Kubernetes",
+  "template": {
+    "request": {
+      "uid": "705ab4f5-6393-11e8-b7cc-42010a800002",
+      "kind": {
+        "group": "",
+        "version": "v1",
+        "kind": "Pod"
+      },
+      "resource": {
+        "group": "",
+        "version": "v1",
+        "resource": "pods"
+      },
+      "requestKind": {
+        "group": "",
+        "version": "v1",
+        "kind": "Pod"
+      },
+      "requestResource": {
+        "group": "",
+        "version": "v1",
+        "resource": "pods"
+      },
+      "name": "my-pod",
+      "namespace": "default",
+      "operation": "CREATE",
+      "userInfo": {
+        "username": "admin",
+        "uid": "014fbff9-07c0-11e8-8d2e-42010a800002",
+        "groups": ["system:authenticated", "developers"]
+      },
+      "object": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+          "name": "my-pod",
+          "namespace": "default",
+          "labels": {
+            "app": "myapp",
+            "env": "production"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "name": "main",
+              "image": "nginx:latest",
+              "ports": [
+                {
+                  "containerPort": 80
+                }
+              ],
+              "securityContext": {
+                "runAsNonRoot": true,
+                "readOnlyRootFilesystem": true
+              }
+            }
+          ]
+        }
+      },
+      "oldObject": null,
+      "dryRun": false
+    }
+  }
+}

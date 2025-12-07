@@ -1,0 +1,5 @@
+{
+  "title": "Envoy JWT Authentication",
+  "description": "Extract, decode, and verify JSON Web Tokens from HTTP requests for Envoy proxy authorization decisions.",
+  "category": "Envoy"
+}

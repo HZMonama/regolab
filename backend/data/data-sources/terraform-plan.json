@@ -1,0 +1,48 @@
+{
+  "id": "terraform-plan",
+  "name": "Terraform Plan",
+  "description": "Terraform plan output for infrastructure changes",
+  "category": "Infrastructure",
+  "template": {
+    "terraform": {
+      "format_version": "1.0",
+      "planned_values": {
+        "root_module": {
+          "resources": [
+            {
+              "address": "aws_instance.web",
+              "mode": "managed",
+              "type": "aws_instance",
+              "name": "web",
+              "provider_name": "registry.terraform.io/hashicorp/aws",
+              "values": {
+                "ami": "ami-0c55b159cbfafe1f0",
+                "instance_type": "t2.micro",
+                "tags": {
+                  "Name": "WebServer",
+                  "Environment": "production"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "resource_changes": [
+        {
+          "address": "aws_instance.web",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "web",
+          "change": {
+            "actions": ["create"],
+            "before": null,
+            "after": {
+              "ami": "ami-0c55b159cbfafe1f0",
+              "instance_type": "t2.micro"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

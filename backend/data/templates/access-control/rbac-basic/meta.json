@@ -1,0 +1,5 @@
+{
+  "title": "Basic RBAC",
+  "description": "Classic RBAC model for a Pet Store API with user-role mappings and role-permission grants.",
+  "category": "Access Control"
+}

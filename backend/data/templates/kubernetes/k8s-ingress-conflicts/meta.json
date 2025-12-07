@@ -1,0 +1,5 @@
+{
+  "title": "K8s Ingress Conflict Detection",
+  "description": "Prevent conflicting Kubernetes Ingress resources by checking for duplicate hostnames across the cluster.",
+  "category": "Kubernetes"
+}

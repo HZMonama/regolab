@@ -1,0 +1,5 @@
+{
+  "title": "Envoy URL Path Matching",
+  "description": "Allow users to access only their own profile by parsing URL paths and matching against Basic Auth credentials.",
+  "category": "Envoy"
+}

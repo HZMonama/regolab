@@ -1,0 +1,15 @@
+{
+  "name": "regolab-monorepo",
+  "version": "2.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "version": "node scripts/version.js",
+    "v:current": "node scripts/version.js current",
+    "v:patch": "node scripts/version.js bump patch",
+    "v:minor": "node scripts/version.js bump minor",
+    "v:major": "node scripts/version.js bump major"
+  },
+  "description": "RegoLab - Policy as Code Sandbox"
+}
+

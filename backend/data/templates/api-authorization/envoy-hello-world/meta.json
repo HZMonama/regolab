@@ -1,0 +1,5 @@
+{
+  "title": "Envoy Hello World",
+  "description": "Simple Envoy External Authorization policy granting public access to root path and full access to specific users.",
+  "category": "Envoy"
+}

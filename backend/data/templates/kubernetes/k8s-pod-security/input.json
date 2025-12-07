@@ -1,0 +1,22 @@
+{
+    "request": {
+        "kind": {"kind": "Pod"},
+        "operation": "CREATE",
+        "object": {
+            "metadata": {
+                "name": "test-pod",
+                "labels": {"app": "web"}
+            },
+            "spec": {
+                "containers": [{
+                    "name": "app",
+                    "image": "nginx:1.20",
+                    "resources": {
+                        "limits": {"cpu": "100m", "memory": "128Mi"}
+                    },
+                    "securityContext": {"privileged": false}
+                }]
+            }
+        }
+    }
+}

@@ -1,0 +1,25 @@
+# Docker Compose for RegoLab
+
+services:
+  backend:
+    image: ${DOCKER_USER:-hzmonama}/regolab-backend:latest
+    ports:
+      - "4000:4000"
+    volumes:
+      - regolab_data:/app/data/policies
+    environment:
+      - STORAGE_PATH=/app/data/policies
+      - CORS_ORIGIN=http://localhost:3000
+
+  frontend:
+    image: ${DOCKER_USER:-hzmonama}/regolab-frontend:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - API_URL=http://backend:4000
+      - DOCKER_RUNNING=true
+    depends_on:
+      - backend
+
+volumes:
+  regolab_data:

@@ -1,0 +1,28 @@
+{
+  "id": "jwt-claims",
+  "name": "JWT Claims",
+  "description": "Decoded JWT token claims for identity verification",
+  "category": "Identity",
+  "template": {
+    "sub": "auth0|user12345",
+    "iss": "https://auth.example.com/",
+    "aud": ["https://api.example.com", "https://app.example.com"],
+    "iat": 1732612200,
+    "exp": 1732698600,
+    "nbf": 1732612200,
+    "jti": "unique-token-id-abc123",
+    "email": "user@example.com",
+    "email_verified": true,
+    "name": "Jane Doe",
+    "given_name": "Jane",
+    "family_name": "Doe",
+    "picture": "https://example.com/avatar.jpg",
+    "roles": ["admin", "user"],
+    "permissions": ["read:users", "write:users", "read:reports"],
+    "org_id": "org_12345",
+    "custom_claims": {
+      "department": "engineering",
+      "employee_id": "EMP001"
+    }
+  }
+}

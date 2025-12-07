@@ -1,0 +1,39 @@
+{
+  "id": "cloudtrail-event",
+  "name": "AWS CloudTrail Event",
+  "description": "AWS CloudTrail API event log entry",
+  "category": "AWS",
+  "template": {
+    "cloudtrail": {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAEXAMPLEID",
+        "arn": "arn:aws:iam::123456789012:user/developer",
+        "accountId": "123456789012",
+        "userName": "developer"
+      },
+      "eventTime": "2025-11-26T12:00:00Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "PutObject",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.50",
+      "userAgent": "aws-cli/2.0.0",
+      "requestParameters": {
+        "bucketName": "my-bucket",
+        "key": "data/file.json"
+      },
+      "responseElements": null,
+      "requestID": "EXAMPLE123456789",
+      "eventID": "EXAMPLE-0000-1111-2222-333344445555",
+      "readOnly": false,
+      "resources": [
+        {
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::my-bucket"
+        }
+      ],
+      "eventType": "AwsApiCall"
+    }
+  }
+}

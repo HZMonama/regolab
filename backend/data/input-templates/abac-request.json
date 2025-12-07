@@ -1,0 +1,36 @@
+{
+  "id": "abac-request",
+  "name": "ABAC Request",
+  "description": "Attribute-Based Access Control request with subject, resource, action, and environment",
+  "category": "Authorization",
+  "template": {
+    "subject": {
+      "id": "user-12345",
+      "type": "user",
+      "attributes": {
+        "department": "engineering",
+        "clearance_level": 3,
+        "roles": ["developer", "reviewer"],
+        "groups": ["team-alpha", "org-engineering"]
+      }
+    },
+    "resource": {
+      "id": "doc-67890",
+      "type": "document",
+      "owner": "user-99999",
+      "attributes": {
+        "classification": "internal",
+        "department": "engineering"
+      }
+    },
+    "action": {
+      "name": "read",
+      "parameters": {}
+    },
+    "environment": {
+      "timestamp": "2025-11-26T10:30:00Z",
+      "ip_address": "192.168.1.100",
+      "location": "office"
+    }
+  }
+}

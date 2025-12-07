@@ -1,0 +1,5 @@
+{
+  "title": "Server Protocol Audit",
+  "description": "Detect servers with insecure protocols (HTTP, Telnet) exposed on public networks.",
+  "category": "Security & Authorization"
+}

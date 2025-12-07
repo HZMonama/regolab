@@ -1,0 +1,5 @@
+{
+  "title": "Attribute-Based Access Control",
+  "description": "Implement ABAC for a Pet Store API where access decisions are based on user, resource, and action attributes like ownership, job title, and tenure.",
+  "category": "Access Control"
+}

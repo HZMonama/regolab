@@ -1,0 +1,38 @@
+{
+  "id": "terraform-plan",
+  "name": "Terraform Plan",
+  "description": "Terraform plan output for infrastructure policy validation",
+  "category": "Infrastructure",
+  "template": {
+    "plan": {
+      "resource_changes": [
+        {
+          "address": "aws_instance.web",
+          "type": "aws_instance",
+          "name": "web",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "change": {
+            "actions": ["create"],
+            "before": null,
+            "after": {
+              "ami": "ami-0c55b159cbfafe1f0",
+              "instance_type": "t3.large",
+              "tags": {
+                "Name": "web-server",
+                "Environment": "production"
+              },
+              "vpc_security_group_ids": ["sg-12345678"]
+            }
+          }
+        }
+      ]
+    },
+    "configuration": {
+      "provider_config": {
+        "aws": {
+          "region": "us-east-1"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "id": "api-gateway",
+  "name": "API Gateway Request",
+  "description": "API Gateway/Envoy style request with full context",
+  "category": "HTTP",
+  "template": {
+    "attributes": {
+      "request": {
+        "http": {
+          "method": "POST",
+          "path": "/api/v1/orders",
+          "host": "api.example.com",
+          "scheme": "https",
+          "headers": {
+            "authorization": ["Bearer eyJ..."],
+            "content-type": ["application/json"],
+            "x-forwarded-for": ["203.0.113.50"]
+          },
+          "body": "{\"items\": [{\"sku\": \"ABC123\", \"qty\": 2}]}"
+        }
+      },
+      "source": {
+        "address": {
+          "socketAddress": {
+            "address": "203.0.113.50",
+            "portValue": 52431
+          }
+        }
+      },
+      "destination": {
+        "address": {
+          "socketAddress": {
+            "address": "10.0.0.5",
+            "portValue": 8080
+          }
+        }
+      },
+      "metadataContext": {
+        "filterMetadata": {
+          "envoy.filters.http.jwt_authn": {
+            "verified_jwt": {
+              "sub": "user123",
+              "iss": "https://auth.example.com"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "title": "Feature Flags",
+  "description": "Control feature rollouts with percentage-based targeting, user groups, and beta user lists.",
+  "category": "Application Logic"
+}

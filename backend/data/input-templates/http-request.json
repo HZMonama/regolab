@@ -1,0 +1,20 @@
+{
+  "id": "http-request",
+  "name": "HTTP Request",
+  "description": "Standard HTTP request structure with method, path, headers, and body",
+  "category": "HTTP",
+  "template": {
+    "method": "GET",
+    "path": "/api/v1/resources/123",
+    "headers": {
+      "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "Content-Type": "application/json",
+      "X-Request-ID": "req-abc-123"
+    },
+    "query": {
+      "include": "metadata",
+      "limit": "10"
+    },
+    "body": {}
+  }
+}

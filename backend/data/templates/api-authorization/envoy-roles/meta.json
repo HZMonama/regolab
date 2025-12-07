@@ -1,0 +1,5 @@
+{
+  "title": "Envoy Role-Based Access",
+  "description": "Grant admin users full access to Envoy-protected services by extracting roles from JWT claims.",
+  "category": "Envoy"
+}

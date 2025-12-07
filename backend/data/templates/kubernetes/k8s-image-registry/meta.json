@@ -1,0 +1,5 @@
+{
+  "title": "K8s Image Registry Validation",
+  "description": "Prevent pods from using container images from untrusted registries by validating image sources.",
+  "category": "Kubernetes"
+}

@@ -1,0 +1,26 @@
+{
+  "id": "graphql-request",
+  "name": "GraphQL Request",
+  "description": "GraphQL operation with query, variables, and context",
+  "category": "HTTP",
+  "template": {
+    "operation": {
+      "type": "query",
+      "name": "GetUser",
+      "selectionSet": ["id", "name", "email", "posts"]
+    },
+    "variables": {
+      "userId": "user-123",
+      "includePrivate": false
+    },
+    "context": {
+      "user": {
+        "id": "requester-456",
+        "roles": ["user"]
+      },
+      "headers": {
+        "Authorization": "Bearer token..."
+      }
+    }
+  }
+}

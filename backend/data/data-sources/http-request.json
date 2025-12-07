@@ -1,0 +1,28 @@
+{
+  "id": "http-request",
+  "name": "HTTP Request",
+  "description": "Incoming HTTP request with headers, method, and body",
+  "category": "HTTP",
+  "template": {
+    "http": {
+      "method": "POST",
+      "path": "/api/v1/resources",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "x-request-id": "req-abc-123",
+        "user-agent": "MyApp/1.0"
+      },
+      "query": {
+        "limit": "10",
+        "offset": "0"
+      },
+      "body": {
+        "name": "new-resource",
+        "type": "example"
+      },
+      "client_ip": "192.168.1.100",
+      "host": "api.example.com"
+    }
+  }
+}

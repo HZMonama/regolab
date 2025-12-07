@@ -1,0 +1,21 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "4000:4000"
+    volumes:
+      # Persist policies to the host machine in the project folder
+      - ./backend/data/policies:/app/data/policies
+    environment:
+      - STORAGE_PATH=/app/data/policies
+      - CORS_ORIGIN=http://localhost:3000
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - API_URL=http://backend:4000
+      - DOCKER_RUNNING=true
+    depends_on:
+      - backend

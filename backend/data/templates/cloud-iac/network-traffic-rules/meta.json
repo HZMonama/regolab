@@ -1,0 +1,5 @@
+{
+  "title": "Network Traffic Policy",
+  "description": "Control network traffic between services with CIDR-based internal network checks, service allowlists, and rate limiting.",
+  "category": "Network & Infrastructure"
+}

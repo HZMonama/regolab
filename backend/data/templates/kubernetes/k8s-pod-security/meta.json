@@ -1,0 +1,5 @@
+{
+  "title": "K8s Pod Security",
+  "description": "Enforce Kubernetes pod security: require resource limits, block privileged containers, mandate labels, and validate image registries.",
+  "category": "Kubernetes"
+}

@@ -1,0 +1,11 @@
+{
+    "sensitive_data": {
+        "name": "John Doe",
+        "email": "john@example.com",
+        "department": "Engineering",
+        "ssn": "123-45-6789",
+        "salary": 75000,
+        "phone": "555-0123",
+        "internal_notes": "High performer, consider for promotion"
+    }
+}

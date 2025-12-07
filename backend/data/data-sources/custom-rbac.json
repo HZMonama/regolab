@@ -1,0 +1,35 @@
+{
+  "id": "custom-rbac",
+  "name": "Custom RBAC Context",
+  "description": "Generic role-based access control context",
+  "category": "Authorization",
+  "template": {
+    "user": {
+      "id": "user-12345",
+      "username": "jdoe",
+      "email": "jdoe@example.com",
+      "roles": ["developer", "viewer"],
+      "groups": ["engineering", "project-alpha"],
+      "attributes": {
+        "department": "Engineering",
+        "location": "US",
+        "clearance_level": 3
+      }
+    },
+    "resource": {
+      "type": "document",
+      "id": "doc-98765",
+      "owner": "user-11111",
+      "classification": "internal",
+      "tags": ["sensitive", "financial"]
+    },
+    "action": {
+      "name": "read",
+      "context": {
+        "ip_address": "192.168.1.100",
+        "timestamp": "2025-11-26T12:00:00Z",
+        "device_type": "laptop"
+      }
+    }
+  }
+}
