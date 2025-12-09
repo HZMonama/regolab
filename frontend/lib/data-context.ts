@@ -1,7 +1,7 @@
 /**
  * Data Context System for RegoLab
  * 
- * Parses JSON from Input/Data panels and provides:
+ * Parses JSON from input.json and data.json and provides:
  * - Autocomplete suggestions for input.* and data.* paths
  * - Hover tooltips showing type and example values
  */

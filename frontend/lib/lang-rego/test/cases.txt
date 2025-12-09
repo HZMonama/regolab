@@ -1,41 +1,327 @@
-# Booleans
+# Package Declaration
 
-#t
-#f
-
-==>
-
-Program(Boolean, Boolean)
-
-# Identifiers
-
-one
-Two_Three
+package example
 
 ==>
 
-Program(Identifier, Identifier)
+Script(PackageDeclaration(package, Identifier))
 
-# Strings
+# Package with Nested Path
 
-"hello"
-"one\"\\two"
-
-==>
-
-Program(String, String)
-
-# Applications
-
-(begin
-  (when #t
-    (print (concat "hello" " " "world")))
-  (print "DONE"))
+package example.policy.rules
 
 ==>
 
-Program(Application(
-  Identifier,
-  Application(Identifier, Boolean, Application(
-    Identifier, Application(Identifier, String, String, String)))
-  Application(Identifier, String)))
+Script(PackageDeclaration(package, Identifier, Identifier, Identifier))
+
+# Import Statement
+
+import data.users
+
+==>
+
+Script(ImportStatement(import, Identifier, Identifier))
+
+# Import with Alias
+
+import future.keywords.if as kw
+
+==>
+
+Script(ImportStatement(import, Identifier, Identifier, Identifier, as, Identifier))
+
+# Simple Boolean Rule
+
+allow = true
+
+==>
+
+Script(Rule(RuleHead(Identifier), AssignOp, Expression(Literal(Boolean(true)))))
+
+# Default Rule
+
+default allow = false
+
+==>
+
+Script(default, Rule(RuleHead(Identifier), AssignOp, Expression(Literal(Boolean(false)))))
+
+# Rule with Body
+
+allow if {
+  input.user == "admin"
+  input.active == true
+}
+
+==>
+
+Script(Rule(
+  RuleHead(Identifier),
+  if,
+  Body(
+    Statement(Expression(BinaryExpression(
+      Expression(MemberExpression(Identifier, Identifier)),
+      CompareOp,
+      Expression(Literal(String))
+    ))),
+    Statement(Expression(BinaryExpression(
+      Expression(MemberExpression(Identifier, Identifier)),
+      CompareOp,
+      Expression(Literal(Boolean(true)))
+    )))
+  )
+))
+
+# Number Literals
+
+x := 42
+y := 3.14
+z := 1e10
+
+==>
+
+Script(
+  Rule(RuleHead(Identifier), AssignOp, Expression(Literal(Number))),
+  Rule(RuleHead(Identifier), AssignOp, Expression(Literal(Number))),
+  Rule(RuleHead(Identifier), AssignOp, Expression(Literal(Number)))
+)
+
+# String Literals
+
+a := "hello"
+b := `raw string`
+
+==>
+
+Script(
+  Rule(RuleHead(Identifier), AssignOp, Expression(Literal(String))),
+  Rule(RuleHead(Identifier), AssignOp, Expression(Literal(RawString)))
+)
+
+# Null Literal
+
+x := null
+
+==>
+
+Script(Rule(RuleHead(Identifier), AssignOp, Expression(Literal(null))))
+
+# Array Literal
+
+arr := [1, 2, 3]
+
+==>
+
+Script(Rule(
+  RuleHead(Identifier),
+  AssignOp,
+  Expression(Array(Expression(Literal(Number)), Expression(Literal(Number)), Expression(Literal(Number))))
+))
+
+# Object Literal
+
+obj := {"name": "alice", "age": 30}
+
+==>
+
+Script(Rule(
+  RuleHead(Identifier),
+  AssignOp,
+  Expression(Object(
+    ObjectItem(String, Expression(Literal(String))),
+    ObjectItem(String, Expression(Literal(Number)))
+  ))
+))
+
+# Empty Set Constructor
+
+s := set()
+
+==>
+
+Script(Rule(RuleHead(Identifier), AssignOp, Expression(Set(set))))
+
+# Set Literal
+
+s := {1, 2, 3}
+
+==>
+
+Script(Rule(
+  RuleHead(Identifier),
+  AssignOp,
+  Expression(Set(Expression(Literal(Number)), Expression(Literal(Number)), Expression(Literal(Number))))
+))
+
+# Function Call
+
+count(users)
+
+==>
+
+Script(Rule(RuleHead(Identifier), Body(Statement(Expression(CallExpression(Identifier, ArgList(Expression(Identifier))))))))
+
+# Member Access
+
+data.users.alice
+
+==>
+
+Script(Rule(RuleHead(Identifier), Body(Statement(Expression(MemberExpression(MemberExpression(Identifier, Identifier), Identifier))))))
+
+# Bracket Access
+
+data.users[name]
+
+==>
+
+Script(Rule(RuleHead(Identifier), Body(Statement(Expression(MemberExpression(MemberExpression(Identifier, Identifier), Expression(Identifier)))))))
+
+# Binary Operators
+
+x := 1 + 2 * 3
+
+==>
+
+Script(Rule(
+  RuleHead(Identifier),
+  AssignOp,
+  Expression(BinaryExpression(
+    Expression(Literal(Number)),
+    Expression(BinaryExpression(Expression(Literal(Number)), Expression(Literal(Number))))
+  ))
+))
+
+# Comparison Operators
+
+a == b
+c != d
+e < f
+g >= h
+
+==>
+
+Script(
+  Rule(RuleHead(Identifier), Body(
+    Statement(Expression(BinaryExpression(Expression(Identifier), CompareOp, Expression(Identifier)))),
+    Statement(Expression(BinaryExpression(Expression(Identifier), CompareOp, Expression(Identifier)))),
+    Statement(Expression(BinaryExpression(Expression(Identifier), CompareOp, Expression(Identifier)))),
+    Statement(Expression(BinaryExpression(Expression(Identifier), CompareOp, Expression(Identifier))))
+  ))
+)
+
+# Logical Operators
+
+a && b || c
+
+==>
+
+Script(Rule(RuleHead(Identifier), Body(Statement(Expression(BinaryExpression(
+  Expression(BinaryExpression(Expression(Identifier), Expression(Identifier))),
+  Expression(Identifier)
+))))))
+
+# Unary Not
+
+!valid
+
+==>
+
+Script(Rule(RuleHead(Identifier), Body(Statement(Expression(UnaryExpression(Expression(Identifier)))))))
+
+# Array Comprehension
+
+nums := [x | x := input.items[_]; x > 0]
+
+==>
+
+Script(Rule(
+  RuleHead(Identifier),
+  AssignOp,
+  Expression(ArrayComprehension(
+    Expression(Identifier),
+    Body(
+      Statement(Expression(BinaryExpression(Expression(Identifier), AssignOp, Expression(MemberExpression(MemberExpression(Identifier, Identifier), Expression(Identifier)))))),
+      Statement(Expression(BinaryExpression(Expression(Identifier), CompareOp, Expression(Literal(Number)))))
+    )
+  ))
+))
+
+# Set Comprehension
+
+admins := {user | user := data.users[_]; user.role == "admin"}
+
+==>
+
+Script(Rule(
+  RuleHead(Identifier),
+  AssignOp,
+  Expression(SetComprehension(
+    Expression(Identifier),
+    Body(
+      Statement(Expression(BinaryExpression(Expression(Identifier), AssignOp, Expression(MemberExpression(MemberExpression(Identifier, Identifier), Expression(Identifier)))))),
+      Statement(Expression(BinaryExpression(Expression(MemberExpression(Identifier, Identifier)), CompareOp, Expression(Literal(String)))))
+    )
+  ))
+))
+
+# Line Comment
+
+# This is a comment
+package foo
+
+==>
+
+Script(PackageDeclaration(package, Identifier))
+
+# Rule with Indexed Head
+
+users[name] = user if {
+  user := data.users[name]
+}
+
+==>
+
+Script(Rule(
+  RuleHead(Identifier, Identifier),
+  AssignOp,
+  Expression(Identifier),
+  if,
+  Body(Statement(Expression(BinaryExpression(
+    Expression(Identifier),
+    AssignOp,
+    Expression(MemberExpression(MemberExpression(Identifier, Identifier), Expression(Identifier)))
+  ))))
+))
+
+# Contains Rule
+
+violations contains msg if {
+  msg := "error"
+}
+
+==>
+
+Script(Rule(
+  RuleHead(Identifier),
+  contains,
+  Expression(Identifier),
+  if,
+  Body(Statement(Expression(BinaryExpression(Expression(Identifier), AssignOp, Expression(Literal(String))))))
+))
+
+# In Expression
+
+some x in items
+
+==>
+
+Script(Rule(RuleHead(Identifier), Body(some, InExpression(Identifier, in, Expression(Identifier)))))
+
+# Multiple Variables in Some
+
+some i, x in items
+
+==>
+
+Script(Rule(RuleHead(Identifier), Body(some, InExpression(Identifier, Identifier, in, Expression(Identifier)))))
