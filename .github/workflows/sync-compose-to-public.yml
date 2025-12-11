@@ -80,40 +80,34 @@ jobs:
             const commitMessage = process.env.COMMIT_MESSAGE || '';
             const commitBody = process.env.COMMIT_BODY || '';
             
-            const detailsSection = commitBody && commitBody.trim() ? `### Details\n${commitBody}` : '';
-            const releaseBody = `## Changes
-
-${commitMessage}
-
-${detailsSection}
-
----
-
-📦 **Docker Images:**
-- \`ghcr.io/hzmonama/regolab-frontend:latest\`
-- \`ghcr.io/hzmonama/regolab-backend:latest\`
-
-🔗 Synced from private repo commit: \`${shortSha}\`
-
-### Quick Start
-\`\`\`bash
-curl -O https://raw.githubusercontent.com/HZMonama/regolab-self-host/main/docker-compose.prod.yml
-docker compose -f docker-compose.prod.yml up -d
-\`\`\`
-`;
+            let releaseBody = '## Changes\n\n' + commitMessage + '\n\n';
+            
+            if (commitBody && commitBody.trim()) {
+              releaseBody += '### Details\n' + commitBody + '\n\n';
+            }
+            
+            releaseBody += '---\n\n';
+            releaseBody += '📦 **Docker Images:**\n';
+            releaseBody += '- `ghcr.io/hzmonama/regolab-frontend:latest`\n';
+            releaseBody += '- `ghcr.io/hzmonama/regolab-backend:latest`\n\n';
+            releaseBody += '🔗 Synced from private repo commit: `' + shortSha + '`\n\n';
+            releaseBody += '### Quick Start\n';
+            releaseBody += '```bash\n';
+            releaseBody += 'curl -O https://raw.githubusercontent.com/HZMonama/regolab-self-host/main/docker-compose.prod.yml\n';
+            releaseBody += 'docker compose -f docker-compose.prod.yml up -d\n';
+            releaseBody += '```';
             
             try {
               await github.rest.repos.createRelease({
                 owner: 'HZMonama',
                 repo: 'regolab-self-host',
                 tag_name: version,
-                name: `RegoLab ${version}`,
+                name: 'RegoLab ' + version,
                 body: releaseBody,
                 draft: false,
                 prerelease: false,
               });
-              console.log(`Created release ${version}`);
+              console.log('Created release ' + version);
             } catch (error) {
               console.error('Failed to create release:', error);
-              // Don't fail the workflow if release creation fails
             }
