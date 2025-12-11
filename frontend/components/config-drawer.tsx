@@ -1,15 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Drawer } from "vaul";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
-import { 
-  useSettings, 
-  type InputTemplate, 
-  type DataSourceTemplate 
-} from "@/lib/settings-context";
+import { useSettings } from "@/lib/settings-context";
 import { 
   Gear, 
   TextAa, 
@@ -19,14 +15,8 @@ import {
   MagnifyingGlass,
   Warning,
   Folder,
-  Trash,
   ArrowsClockwise,
   CheckCircle,
-  XCircle,
-  CaretDown,
-  CaretRight,
-  Database,
-  FileCode,
   ArrowSquareOut,
   Info,
 } from "phosphor-react";
@@ -122,114 +112,6 @@ function Slider({
 }
 
 // ============================================================================
-// Collapsible Section Component
-// ============================================================================
-
-function CollapsibleSection({
-  title,
-  icon,
-  children,
-  defaultOpen = false,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  
-  return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 p-3 bg-zinc-900/50 hover:bg-zinc-900 transition-colors"
-      >
-        {isOpen ? (
-          <CaretDown className="w-4 h-4 text-muted-foreground" />
-        ) : (
-          <CaretRight className="w-4 h-4 text-muted-foreground" />
-        )}
-        {icon}
-        <span className="text-sm font-medium">{title}</span>
-      </button>
-      {isOpen && (
-        <div className="p-3 space-y-3 border-t border-border">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ============================================================================
-// Template List Item
-// ============================================================================
-
-function TemplateListItem({
-  name,
-  description,
-  category,
-  isEnabled,
-  isBuiltIn,
-  onToggle,
-  onRemove,
-}: {
-  name: string;
-  description: string;
-  category: string;
-  isEnabled: boolean;
-  isBuiltIn: boolean;
-  onToggle: () => void;
-  onRemove?: () => void;
-}) {
-  return (
-    <div className={cn(
-      "flex items-center justify-between p-2 rounded-md border",
-      isEnabled ? "border-border bg-zinc-900/30" : "border-border/50 bg-zinc-900/10 opacity-60"
-    )}>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium truncate">{name}</span>
-          <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-muted-foreground">
-            {category}
-          </span>
-          {!isBuiltIn && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-900/50 text-blue-400">
-              Custom
-            </span>
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground truncate">{description}</p>
-      </div>
-      <div className="flex items-center gap-1 ml-2">
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 w-7 p-0"
-          onClick={onToggle}
-        >
-          {isEnabled ? (
-            <CheckCircle className="w-4 h-4 text-emerald-500" weight="fill" />
-          ) : (
-            <XCircle className="w-4 h-4 text-muted-foreground" />
-          )}
-        </Button>
-        {!isBuiltIn && onRemove && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-            onClick={onRemove}
-          >
-            <Trash className="w-4 h-4" />
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
 // Main Config Drawer Component
 // ============================================================================
 
@@ -239,22 +121,11 @@ export const ConfigDrawer: React.FC<Props> = function ConfigDrawer(props) {
     settings,
     updateEditorSettings,
     updateLintingSettings,
-    disableBuiltInInputTemplate,
-    enableBuiltInInputTemplate,
-    removeCustomInputTemplate,
-    disableBuiltInDataSource,
-    enableBuiltInDataSource,
-    removeCustomDataSource,
     versionInfo,
     checkForUpdates,
     isCheckingUpdates,
     resetSettings,
   } = useSettings();
-
-  // Built-in templates from backend
-  const [builtInInputTemplates, setBuiltInInputTemplates] = useState<InputTemplate[]>([]);
-  const [builtInDataSources, setBuiltInDataSources] = useState<DataSourceTemplate[]>([]);
-  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   const isControlled = props.open !== undefined;
   const open = isControlled ? props.open! : internalOpen;
@@ -262,66 +133,6 @@ export const ConfigDrawer: React.FC<Props> = function ConfigDrawer(props) {
     if (!isControlled) setInternalOpen(v);
     props.onOpenChange?.(v);
   };
-
-  // Fetch built-in templates when drawer opens
-  useEffect(() => {
-    if (!open) return;
-
-    const fetchTemplates = async () => {
-      setLoadingTemplates(true);
-      try {
-        const [inputRes, dataRes] = await Promise.all([
-          fetch("/api/input-templates"),
-          fetch("/api/data-sources"),
-        ]);
-        
-        if (inputRes.ok) {
-          const data = await inputRes.json();
-          setBuiltInInputTemplates(
-            (data.templates || []).map((t: InputTemplate) => ({ ...t, isBuiltIn: true }))
-          );
-        }
-        
-        if (dataRes.ok) {
-          const data = await dataRes.json();
-          setBuiltInDataSources(
-            (data.dataSources || []).map((t: DataSourceTemplate) => ({ ...t, isBuiltIn: true }))
-          );
-        }
-      } catch (e) {
-        console.error("Failed to fetch templates:", e);
-      } finally {
-        setLoadingTemplates(false);
-      }
-    };
-
-    fetchTemplates();
-  }, [open]);
-
-  // Combine built-in and custom templates
-  const allInputTemplates = [
-    ...builtInInputTemplates,
-    ...settings.templates.inputTemplates.custom,
-  ];
-  
-  const allDataSources = [
-    ...builtInDataSources,
-    ...settings.templates.dataSourceTemplates.custom,
-  ];
-
-  const isInputTemplateEnabled = useCallback((id: string, isBuiltIn: boolean) => {
-    if (isBuiltIn) {
-      return !settings.templates.inputTemplates.disabledBuiltIn.includes(id);
-    }
-    return true; // Custom templates are always "enabled" (they exist)
-  }, [settings.templates.inputTemplates.disabledBuiltIn]);
-
-  const isDataSourceEnabled = useCallback((id: string, isBuiltIn: boolean) => {
-    if (isBuiltIn) {
-      return !settings.templates.dataSourceTemplates.disabledBuiltIn.includes(id);
-    }
-    return true;
-  }, [settings.templates.dataSourceTemplates.disabledBuiltIn]);
 
   const handleResetSettings = useCallback(() => {
     if (window.confirm("Reset all settings to defaults? This cannot be undone.")) {
@@ -343,14 +154,14 @@ export const ConfigDrawer: React.FC<Props> = function ConfigDrawer(props) {
               <div className="flex items-center gap-2">
                 <Gear weight="duotone" className="w-5 h-5" />
                 <Drawer.Title className="text-lg font-semibold font-display">
-                  Settings
+                  Config
                 </Drawer.Title>
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-xs text-muted-foreground hover:text-foreground"
+                  className="text-xs text-muted-foreground hover:text-foreground border border-dashed border-muted-foreground/50 hover:border-solid hover:border-muted-foreground"
                   onClick={handleResetSettings}
                 >
                   Reset All
@@ -464,6 +275,9 @@ export const ConfigDrawer: React.FC<Props> = function ConfigDrawer(props) {
                 </div>
               </section>
 
+              {/* Dashed separator */}
+              <div className="border-t border-dashed border-border" />
+
               {/* ============================================================ */}
               {/* 2. Linting & Validation */}
               {/* ============================================================ */}
@@ -554,93 +368,11 @@ export const ConfigDrawer: React.FC<Props> = function ConfigDrawer(props) {
                 </div>
               </section>
 
-              {/* ============================================================ */}
-              {/* 3. Templates */}
-              {/* ============================================================ */}
-              <section>
-                <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
-                  <FileCode weight="duotone" className="w-4 h-4" />
-                  Templates
-                </h3>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Manage built-in and custom templates for Input and Data panels.
-                </p>
-                
-                <div className="space-y-3">
-                  {/* Input Templates */}
-                  <CollapsibleSection
-                    title={`Input Templates (${allInputTemplates.length})`}
-                    icon={<FileCode className="w-4 h-4 text-muted-foreground" />}
-                  >
-                    {loadingTemplates ? (
-                      <p className="text-xs text-muted-foreground">Loading templates...</p>
-                    ) : allInputTemplates.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">No templates available</p>
-                    ) : (
-                      <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                        {allInputTemplates.map((t) => (
-                          <TemplateListItem
-                            key={t.id}
-                            name={t.name}
-                            description={t.description}
-                            category={t.category}
-                            isBuiltIn={t.isBuiltIn}
-                            isEnabled={isInputTemplateEnabled(t.id, t.isBuiltIn)}
-                            onToggle={() => {
-                              if (t.isBuiltIn) {
-                                if (isInputTemplateEnabled(t.id, true)) {
-                                  disableBuiltInInputTemplate(t.id);
-                                } else {
-                                  enableBuiltInInputTemplate(t.id);
-                                }
-                              }
-                            }}
-                            onRemove={!t.isBuiltIn ? () => removeCustomInputTemplate(t.id) : undefined}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </CollapsibleSection>
-                  
-                  {/* Data Source Templates */}
-                  <CollapsibleSection
-                    title={`Data Source Templates (${allDataSources.length})`}
-                    icon={<Database className="w-4 h-4 text-muted-foreground" />}
-                  >
-                    {loadingTemplates ? (
-                      <p className="text-xs text-muted-foreground">Loading templates...</p>
-                    ) : allDataSources.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">No data sources available</p>
-                    ) : (
-                      <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                        {allDataSources.map((t) => (
-                          <TemplateListItem
-                            key={t.id}
-                            name={t.name}
-                            description={t.description}
-                            category={t.category}
-                            isBuiltIn={t.isBuiltIn}
-                            isEnabled={isDataSourceEnabled(t.id, t.isBuiltIn)}
-                            onToggle={() => {
-                              if (t.isBuiltIn) {
-                                if (isDataSourceEnabled(t.id, true)) {
-                                  disableBuiltInDataSource(t.id);
-                                } else {
-                                  enableBuiltInDataSource(t.id);
-                                }
-                              }
-                            }}
-                            onRemove={!t.isBuiltIn ? () => removeCustomDataSource(t.id) : undefined}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </CollapsibleSection>
-                </div>
-              </section>
+              {/* Dashed separator */}
+              <div className="border-t border-dashed border-border" />
 
               {/* ============================================================ */}
-              {/* 4. Updates */}
+              {/* 3. Updates */}
               {/* ============================================================ */}
               <section>
                 <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">

@@ -94,7 +94,7 @@ export const DEFAULT_SETTINGS: RegoLabSettings = {
 
 const STORAGE_KEY = "regolab-settings";
 const VERSION_CACHE_KEY = "regolab-version-cache";
-const CURRENT_VERSION = "2.0.1"; // Should match package.json
+const CURRENT_VERSION = "2.1.0"; // Should match package.json
 
 // ============================================================================
 // Context

@@ -4,7 +4,7 @@
  */
 
 const GITHUB_REPO = "HZMonama/regolab-self-host";
-const CURRENT_VERSION = process.env.REGOLAB_VERSION || "2.0.1";
+const CURRENT_VERSION = process.env.REGOLAB_VERSION || "2.1.0";
 
 export const versionRoutes = async (fastify) => {
   // Get current version

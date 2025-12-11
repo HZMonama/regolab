@@ -6,8 +6,7 @@ import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, undo, redo, indentWithTab, indentLess } from "@codemirror/commands";
 import { linter, type Diagnostic } from "@codemirror/lint";
 import { json } from "@codemirror/lang-json";
-import { rego, setDataContext, dataContextField } from "@/lib/lang-rego/index";
-import { DataContext } from "@/lib/data-context";
+import { rego, setRegoDataContext, regoDataContext, type RegoDataContext } from "codemirror-lang-rego";
 import { dataSourceExtension } from "@/lib/cm-data-source";
 import { githubDark } from "@fsegurai/codemirror-theme-github-dark";
 import { basicSetup } from "codemirror";
@@ -54,7 +53,7 @@ interface CodeEditorProps {
   isTestEditorVisible?: boolean;
   showTestToggle?: boolean;
   // Data context for autocomplete (input/data schemas)
-  dataContext?: DataContext;
+  dataContext?: RegoDataContext;
 }
 
 export function CodeEditor({
@@ -205,6 +204,8 @@ export function CodeEditor({
       extensions.push(dataSourceExtension());
     } else if (language === "rego") {
       extensions.push(rego());
+      // Add data context extension for autocomplete
+      extensions.push(regoDataContext(dataContext || { input: null, data: null }));
       // Add linting for Rego files if enabled (respects liveLinting setting)
       const shouldLint = enableLinting && !readOnly && settings.linting.liveLinting;
       if (shouldLint) {
@@ -294,6 +295,7 @@ export function CodeEditor({
         resizeObserverRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language, readOnly, debounceMs, resizeSignal, enableLinting, createRegoLinter, settings.editor.fontSize, settings.editor.lineWrap, settings.linting.liveLinting]);
 
   // Sync external value into the editor without recreating it
@@ -337,12 +339,10 @@ export function CodeEditor({
     const view = viewRef.current;
     if (!view || language !== "rego" || !dataContext) return;
     
-    // Only dispatch if the editor has the dataContextField
-    if (view.state.field(dataContextField, false) !== undefined) {
-      view.dispatch({
-        effects: setDataContext.of(dataContext)
-      });
-    }
+    // Dispatch effect to update data context
+    view.dispatch({
+      effects: setRegoDataContext.of(dataContext)
+    });
   }, [dataContext, language]);
 
   // Actions for floating controls

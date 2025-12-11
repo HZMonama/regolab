@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { Funnel_Display, Funnel_Sans } from "next/font/google";
 import "../globals.css";
 import '../lib/simplescrollbars.css';
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/sidebar/app-sidebar"
+import { PolicyPanel, PolicyPanelProvider } from "@/components/policy-panel"
 import AppHeader from "@/components/header/app-header"
 import { PoliciesProvider } from "@/components/files-list"
 import { SettingsProvider } from "@/lib/settings-context"
 import SonnerProvider from "@/components/sonner-provider"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 const funnelDisplay = Funnel_Display({
   variable: "--font-funnel-display",
@@ -43,24 +43,26 @@ export default function RootLayout({
       >
         <div className="[--header-height] md:[--header-height] min-h-screen h-full">
           <SettingsProvider>
-            <SidebarProvider className="flex flex-col h-full">
-              <PoliciesProvider>
-                <SonnerProvider />
-                <div className="flex flex-col h-full">
-                  <AppHeader />
+            <TooltipProvider delayDuration={0}>
+              <PolicyPanelProvider>
+                <PoliciesProvider>
+                  <SonnerProvider />
+                  <div className="flex flex-col h-full">
+                    <AppHeader />
 
-                  <div className="flex flex-1 overflow-hidden pt-(--header-total-height)">
-                    <AppSidebar />
+                    <div className="flex flex-1 overflow-hidden pt-(--header-total-height)">
+                      <div className="flex gap-2 p-2 w-full h-full">
+                        <PolicyPanel />
 
-                    <SidebarInset className="h-full">
-                      <div className="flex flex-1 flex-col gap-2 p-2 h-full overflow-y-auto min-w-0">
-                        {children}
+                        <main className="flex-1 min-w-0 overflow-hidden">
+                          {children}
+                        </main>
                       </div>
-                    </SidebarInset>
+                    </div>
                   </div>
-                </div>
-              </PoliciesProvider>
-            </SidebarProvider>
+                </PoliciesProvider>
+              </PolicyPanelProvider>
+            </TooltipProvider>
           </SettingsProvider>
         </div>
       </body>

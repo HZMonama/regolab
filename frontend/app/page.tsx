@@ -6,7 +6,8 @@ import { EditorPanels, type ErrorItem } from '../components/editor-panels';
 import { usePolicies } from '../components/files-list';
 import { ServerBadge } from '../components/server-badge';
 import { cn } from '@/lib/utils';
-import { parseJsonToSchema, DataContext } from '@/lib/data-context';
+import { parseJsonToSchema } from '@/lib/data-context';
+import type { RegoDataContext } from 'codemirror-lang-rego';
 
 export default function Home() {
   const { 
@@ -28,7 +29,7 @@ export default function Home() {
   const [isTestEditorVisible, setIsTestEditorVisible] = useState(false);
 
   // Parse input/data JSON to create data context for autocomplete
-  const dataContext: DataContext = useMemo(() => {
+  const dataContext: RegoDataContext = useMemo(() => {
     return {
       input: parseJsonToSchema(activePolicyContent.input || '{}', 'Input'),
       data: parseJsonToSchema(activePolicyContent.data || '{}', 'Data')
@@ -105,9 +106,6 @@ export default function Home() {
                   
                   {/* Test Editor Panel */}
                   <div className="flex-1 relative overflow-hidden" style={{ flex: '1 1 50%' }}>
-                    <div className="absolute top-2 left-4 z-10 text-xs text-muted-foreground font-medium bg-card/80 px-2 py-1 rounded">
-                      test.rego
-                    </div>
                     <CodeEditor
                       value={activePolicyContent.test}
                       onChange={(v) => setActivePolicyContent(prev => ({ ...prev, test: v }))}
@@ -116,6 +114,10 @@ export default function Home() {
                       enableLinting={false}
                       dataContext={dataContext}
                     />
+                    {/* test.rego label - bottom left */}
+                    <div className="absolute bottom-2 left-2 z-10 text-xs text-muted-foreground font-medium bg-card/90 px-2 py-1 rounded border border-sidebar-border">
+                      test.rego
+                    </div>
                   </div>
                 </>
               )}
