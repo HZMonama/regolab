@@ -3,7 +3,7 @@ import { Funnel_Display, Funnel_Sans } from "next/font/google";
 import "../globals.css";
 import '../lib/simplescrollbars.css';
 import { PolicyPanel, PolicyPanelProvider } from "@/components/policy-panel"
-import AppHeader from "@/components/header/app-header"
+import AppHeader from "@/components/app-header"
 import { PoliciesProvider } from "@/components/files-list"
 import { SettingsProvider } from "@/lib/settings-context"
 import SonnerProvider from "@/components/sonner-provider"
@@ -22,8 +22,8 @@ const funnelSans = Funnel_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "RegoLab",
-  description: "Policy as Code Sandbox",
+  title: "RegoLab.sh",
+  description: "Policy as Code Sandbox Self-Hosted",
     icons: {
     icon: "/mayn-favicon.svg",
     shortcut: "/mayn-favicon.svg",

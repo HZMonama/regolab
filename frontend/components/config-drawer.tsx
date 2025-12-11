@@ -13,16 +13,12 @@ import {
   FloppyDisk, 
   Lightning,
   MagnifyingGlass,
-  Warning,
-  Folder,
   ArrowsClockwise,
   CheckCircle,
   ArrowSquareOut,
-  Info,
 } from "phosphor-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Props = {
   open?: boolean;
@@ -322,49 +318,6 @@ export const ConfigDrawer: React.FC<Props> = function ConfigDrawer(props) {
                       disabledLabel="Off"
                     />
                   </div>
-                  
-                  {/* Directory Package Mismatch */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <span className="text-sm text-foreground flex items-center gap-2">
-                        <Folder className="w-4 h-4 text-muted-foreground" />
-                        Directory/Package Mismatch
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button className="text-muted-foreground hover:text-foreground">
-                              <Info className="w-3.5 h-3.5" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs">
-                            <p className="text-xs">
-                              <strong>Recommended: Off</strong><br />
-                              RegoLab stores policies flat, not in directories matching package paths. 
-                              This check expects <code>package foo.bar</code> to be in <code>foo/bar/policy.rego</code>.
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </span>
-                      <p className="text-xs text-muted-foreground">
-                        Warn when package path doesn&apos;t match directory
-                      </p>
-                    </div>
-                    <ToggleButton
-                      enabled={settings.linting.directoryPackageMismatch}
-                      onToggle={(v) => updateLintingSettings({ directoryPackageMismatch: v })}
-                      enabledLabel="On"
-                      disabledLabel="Off"
-                    />
-                  </div>
-                  
-                  {settings.linting.directoryPackageMismatch && (
-                    <div className="flex items-start gap-2 p-2 rounded bg-amber-900/20 border border-amber-700/50">
-                      <Warning className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-200">
-                        This check may produce false positives because RegoLab uses flat storage, 
-                        not directory-based package organization.
-                      </p>
-                    </div>
-                  )}
                 </div>
               </section>
 
