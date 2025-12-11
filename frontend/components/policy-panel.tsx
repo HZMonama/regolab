@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { BookOpen, GearSix, PlusCircle, Bookmark } from "phosphor-react"
+import { BookOpen, GearSix, PlusCircle, Bookmark, GithubLogo } from "phosphor-react"
 import ConfigDrawer from "@/components/config-drawer"
 import ExamplesDrawer from "@/components/examples-drawer"
 import { cn } from "@/lib/utils"
@@ -139,6 +139,18 @@ export function PolicyPanel({ className }: PolicyPanelProps) {
 
       {/* Footer Actions */}
       <div className="p-2 border-t border-sidebar-border shrink-0 space-y-2">
+        <button
+          onClick={() => {
+            // TODO: Implement GitHub authentication
+          }}
+          onMouseEnter={() => setHoveredButton("github")}
+          onMouseLeave={() => setHoveredButton(null)}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-sidebar-accent hover:bg-purple-900 hover:text-purple-200 text-muted-foreground transition-colors"
+        >
+          <GithubLogo weight={hoveredButton === "github" ? "fill" : "regular"} className="w-4 h-4" />
+          <span className="text-sm">Sign in with GitHub</span>
+        </button>
+
         <button
           onClick={() => setExamplesOpen(true)}
           onMouseEnter={() => setHoveredButton("templates")}

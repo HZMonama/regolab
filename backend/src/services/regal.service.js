@@ -135,29 +135,34 @@ export async function lintPolicy(policy) {
  * @returns {Array} CodeMirror-compatible diagnostics
  */
 export function mapToDiagnostics(violations) {
-  return violations.map((v) => {
-    const location = v.location || {};
-    const row = location.row || 1;
-    const col = location.col || 1;
-    const textLength = location.text?.length || 1;
+  // Rules to ignore
+  const ignoredRules = ['directory-package-mismatch'];
+  
+  return violations
+    .filter((v) => !ignoredRules.includes(v.title))
+    .map((v) => {
+      const location = v.location || {};
+      const row = location.row || 1;
+      const col = location.col || 1;
+      const textLength = location.text?.length || 1;
 
-    return {
-      from: {
-        line: row,
-        col: col,
-      },
-      to: {
-        line: row,
-        col: col + textLength,
-      },
-      severity: v.level === 'error' ? 'error' : 'warning',
-      message: v.description || v.title || 'Unknown violation',
-      source: `regal/${v.category || 'unknown'}/${v.title || 'unknown'}`,
-      rule: v.title,
-      category: v.category,
-      documentation: v.documentation?.url || null,
-    };
-  });
+      return {
+        from: {
+          line: row,
+          col: col,
+        },
+        to: {
+          line: row,
+          col: col + textLength,
+        },
+        severity: v.level === 'error' ? 'error' : 'warning',
+        message: v.description || v.title || 'Unknown violation',
+        source: `regal/${v.category || 'unknown'}/${v.title || 'unknown'}`,
+        rule: v.title,
+        category: v.category,
+        documentation: v.documentation?.url || null,
+      };
+    });
 }
 
 /**
