@@ -8,8 +8,10 @@ on:
       - 'docker-compose.prod.yml'
       - 'frontend/**'
       - 'backend/**'
+      - '.github/workflows/sync-compose-to-public.yml'
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   sync-and-release:
