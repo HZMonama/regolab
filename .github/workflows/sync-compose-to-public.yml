@@ -33,8 +33,8 @@ jobs:
       - name: Get commit message
         id: commit
         run: |
-          # Get the commit message, escape for JSON
-          MSG=$(git log -1 --pretty=format:"%s" | sed 's/"/\\"/g')
+          # Get the commit message, escape for JSON and limit to single line
+          MSG=$(git log -1 --pretty=format:"%s" | sed 's/"/\\"/g' | tr '\n' ' ')
           BODY=$(git log -1 --pretty=format:"%b" | sed 's/"/\\"/g' | tr '\n' ' ')
           echo "message=$MSG" >> $GITHUB_OUTPUT
           echo "body=$BODY" >> $GITHUB_OUTPUT
@@ -69,34 +69,38 @@ jobs:
 
       - name: Create release on public repo
         uses: actions/github-script@v7
+        env:
+          COMMIT_MESSAGE: ${{ steps.commit.outputs.message }}
+          COMMIT_BODY: ${{ steps.commit.outputs.body }}
         with:
           github-token: ${{ secrets.PUBLIC_REPO_PAT }}
           script: |
             const version = '${{ steps.version.outputs.tag }}';
             const shortSha = '${{ steps.version.outputs.short_sha }}';
-            const commitMessage = `${{ steps.commit.outputs.message }}`;
-            const commitBody = `${{ steps.commit.outputs.body }}`;
+            const commitMessage = process.env.COMMIT_MESSAGE || '';
+            const commitBody = process.env.COMMIT_BODY || '';
             
+            const detailsSection = commitBody && commitBody.trim() ? `### Details\n${commitBody}` : '';
             const releaseBody = `## Changes
 
-            ${commitMessage}
+${commitMessage}
 
-            ${commitBody ? `### Details\n${commitBody}` : ''}
+${detailsSection}
 
-            ---
-            
-            📦 **Docker Images:**
-            - \`ghcr.io/hzmonama/regolab-frontend:latest\`
-            - \`ghcr.io/hzmonama/regolab-backend:latest\`
-            
-            🔗 Synced from private repo commit: \`${shortSha}\`
-            
-            ### Quick Start
-            \`\`\`bash
-            curl -O https://raw.githubusercontent.com/HZMonama/regolab-self-host/main/docker-compose.prod.yml
-            docker compose -f docker-compose.prod.yml up -d
-            \`\`\`
-            `;
+---
+
+📦 **Docker Images:**
+- \`ghcr.io/hzmonama/regolab-frontend:latest\`
+- \`ghcr.io/hzmonama/regolab-backend:latest\`
+
+🔗 Synced from private repo commit: \`${shortSha}\`
+
+### Quick Start
+\`\`\`bash
+curl -O https://raw.githubusercontent.com/HZMonama/regolab-self-host/main/docker-compose.prod.yml
+docker compose -f docker-compose.prod.yml up -d
+\`\`\`
+`;
             
             try {
               await github.rest.repos.createRelease({
