@@ -31,11 +31,12 @@ COPY data/data-sources/ ./data/data-sources/
 # Copy input templates (baked into image)
 COPY data/input-templates/ ./data/input-templates/
 
-# Create directory for policies (will be mounted)
-RUN mkdir -p ./data/policies
+# Set environment variables for Cloud Run
+ENV NODE_ENV=production
+ENV PORT=8080
 
-# Expose port
-EXPOSE 4000
+# Expose port (Cloud Run uses 8080 by default)
+EXPOSE 8080
 
 # Start command
 CMD ["npm", "start"]

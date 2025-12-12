@@ -8,6 +8,7 @@ import { PoliciesProvider } from "@/components/files-list"
 import { SettingsProvider } from "@/lib/settings-context"
 import SonnerProvider from "@/components/sonner-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { AuthProvider } from "@/lib/auth-context"
 
 const funnelDisplay = Funnel_Display({
   variable: "--font-funnel-display",
@@ -43,26 +44,28 @@ export default function RootLayout({
       >
         <div className="[--header-height] md:[--header-height] min-h-screen h-full">
           <SettingsProvider>
-            <TooltipProvider delayDuration={0}>
-              <PolicyPanelProvider>
-                <PoliciesProvider>
-                  <SonnerProvider />
-                  <div className="flex flex-col h-full">
-                    <AppHeader />
+            <AuthProvider>
+              <TooltipProvider delayDuration={0}>
+                <PolicyPanelProvider>
+                  <PoliciesProvider>
+                    <SonnerProvider />
+                    <div className="flex flex-col h-full">
+                      <AppHeader />
 
-                    <div className="flex flex-1 overflow-hidden pt-(--header-total-height)">
-                      <div className="flex gap-2 p-2 w-full h-full">
-                        <PolicyPanel />
+                      <div className="flex flex-1 overflow-hidden pt-(--header-total-height)">
+                        <div className="flex gap-2 p-2 w-full h-full">
+                          <PolicyPanel />
 
-                        <main className="flex-1 min-w-0 overflow-hidden">
-                          {children}
-                        </main>
+                          <main className="flex-1 min-w-0 overflow-hidden">
+                            {children}
+                          </main>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </PoliciesProvider>
-              </PolicyPanelProvider>
-            </TooltipProvider>
+                  </PoliciesProvider>
+                </PolicyPanelProvider>
+              </TooltipProvider>
+            </AuthProvider>
           </SettingsProvider>
         </div>
       </body>

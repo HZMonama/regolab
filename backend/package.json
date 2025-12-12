@@ -1,17 +1,15 @@
 {
   "scripts": {
-    "start": "fastify start -l info -p 4000 -a 0.0.0.0 src/app.js",
+    "start": "fastify start -l info -p ${PORT:-8080} -a 0.0.0.0 src/app.js",
     "dev": "fastify start -w -l info -p 4000 -a 0.0.0.0 --ignore-watch=\"data node_modules .git\" src/app.js"
   },
   "type": "module",
   "dependencies": {
     "@fastify/cors": "^11.1.0",
-    "archiver": "^7.0.1",
     "fastify": "^5.6.2",
     "fastify-cli": "^7.4.1"
   },
   "devDependencies": {
-    "@types/archiver": "^7.0.0",
     "@types/node": "^24.10.1"
   }
 }

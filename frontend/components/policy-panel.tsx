@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { BookOpen, GearSix, PlusCircle, Bookmark, GithubLogo } from "phosphor-react"
+import { BookOpen, GearSix, PlusCircle, Bookmark, GithubLogo, SignOut } from "phosphor-react"
 import ConfigDrawer from "@/components/config-drawer"
 import ExamplesDrawer from "@/components/examples-drawer"
 import { cn } from "@/lib/utils"
@@ -9,6 +9,8 @@ import { Kbd } from "@/components/ui/kbd"
 import Link from "next/link"
 import FilesList, { usePolicies } from "@/components/files-list"
 import { PanelLeftIcon } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface PolicyPanelProps {
   className?: string
@@ -73,10 +75,14 @@ export function PolicyPanel({ className }: PolicyPanelProps) {
   const [hoveredButton, setHoveredButton] = React.useState<string | null>(null)
   const [configOpen, setConfigOpen] = React.useState(false)
   const [examplesOpen, setExamplesOpen] = React.useState(false)
+  const [authMenuOpen, setAuthMenuOpen] = React.useState(false)
   const newPolicyButtonRef = React.useRef<HTMLButtonElement | null>(null)
 
   // policies hook
   const policies = usePolicies()
+  
+  // auth hook
+  const { user, loading: authLoading, signInWithGithub, signOut } = useAuth()
 
   // Alt+N shortcut for new policy
   React.useEffect(() => {
@@ -119,10 +125,11 @@ export function PolicyPanel({ className }: PolicyPanelProps) {
               console.error("New policy failed", e)
             }
           }}
+          disabled={!user}
           aria-label="New Policy"
           onMouseEnter={() => setHoveredButton("new")}
           onMouseLeave={() => setHoveredButton(null)}
-          className="flex-1 flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-sidebar-accent hover:bg-sidebar-border hover:text-violet-200 text-muted-foreground transition-colors"
+          className="flex-1 flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-sidebar-accent hover:bg-sidebar-border hover:text-violet-200 text-muted-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-sidebar-accent disabled:hover:text-muted-foreground"
         >
           <div className="flex items-center gap-2">
             <PlusCircle weight={hoveredButton === "new" ? "fill" : "regular"} className="w-4 h-4" />
@@ -139,17 +146,66 @@ export function PolicyPanel({ className }: PolicyPanelProps) {
 
       {/* Footer Actions */}
       <div className="p-2 border-t border-sidebar-border shrink-0 space-y-2">
-        <button
-          onClick={() => {
-            // TODO: Implement GitHub authentication
-          }}
-          onMouseEnter={() => setHoveredButton("github")}
-          onMouseLeave={() => setHoveredButton(null)}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-sidebar-accent hover:bg-purple-900 hover:text-purple-200 text-muted-foreground transition-colors"
-        >
-          <GithubLogo weight={hoveredButton === "github" ? "fill" : "regular"} className="w-4 h-4" />
-          <span className="text-sm">Sign in with GitHub</span>
-        </button>
+        {/* Auth Button */}
+        {authLoading ? (
+          <div className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-sidebar-accent text-muted-foreground">
+            <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm">Loading...</span>
+          </div>
+        ) : user ? (
+          <Popover open={authMenuOpen} onOpenChange={setAuthMenuOpen}>
+            <PopoverTrigger asChild>
+              <button
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  setAuthMenuOpen(true)
+                }}
+                onMouseEnter={() => setHoveredButton("github")}
+                onMouseLeave={() => setHoveredButton(null)}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-sidebar-accent hover:bg-purple-900 hover:text-purple-200 text-muted-foreground transition-colors"
+              >
+                {user.photoURL ? (
+                  <img 
+                    src={user.photoURL} 
+                    alt={user.displayName || 'User'} 
+                    className="w-5 h-5 rounded-full"
+                  />
+                ) : (
+                  <GithubLogo weight={hoveredButton === "github" ? "fill" : "regular"} className="w-4 h-4" />
+                )}
+                <span className="text-sm truncate flex-1 text-left">
+                  {user.displayName || user.email || 'Signed in'}
+                </span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent 
+              side="top" 
+              align="start" 
+              className="w-56 p-1"
+            >
+              <button
+                onClick={() => {
+                  signOut()
+                  setAuthMenuOpen(false)
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-destructive/10 hover:text-destructive text-sm transition-colors"
+              >
+                <SignOut className="w-4 h-4" />
+                <span>Sign out</span>
+              </button>
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <button
+            onClick={signInWithGithub}
+            onMouseEnter={() => setHoveredButton("github")}
+            onMouseLeave={() => setHoveredButton(null)}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-sidebar-accent hover:bg-purple-900 hover:text-purple-200 text-muted-foreground transition-colors"
+          >
+            <GithubLogo weight={hoveredButton === "github" ? "fill" : "regular"} className="w-4 h-4" />
+            <span className="text-sm">Sign in with GitHub</span>
+          </button>
+        )}
 
         <button
           onClick={() => setExamplesOpen(true)}

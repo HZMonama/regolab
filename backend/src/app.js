@@ -1,5 +1,4 @@
 import cors from '@fastify/cors';
-import { policyRoutes } from './routes/policies.js';
 import { evaluateRoutes } from './routes/evaluate.js';
 import { templateRoutes } from './routes/templates.js';
 import { lintRoutes } from './routes/lint.js';
@@ -9,9 +8,27 @@ import inputTemplatesRoutes from './routes/input-templates.js';
 
 export default async function (fastify, opts) {
   console.log('Fastify plugin loaded');
-  // Register CORS
+  
+  // Register CORS - allow multiple origins for Cloud Run deployment
+  const allowedOrigins = process.env.CORS_ORIGIN 
+    ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+    : ['http://localhost:3000'];
+  
   fastify.register(cors, {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000'
+    origin: (origin, cb) => {
+      // Allow requests with no origin (like mobile apps, curl, etc.)
+      if (!origin) {
+        cb(null, true);
+        return;
+      }
+      
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Not allowed by CORS'), false);
+      }
+    },
+    credentials: true
   });
 
   // Health check
@@ -19,11 +36,10 @@ export default async function (fastify, opts) {
     return { status: 'ok' };
   });
 
-  // Register routes
-  fastify.register(policyRoutes, { prefix: '/api/policies' });
+  // Register routes - OPA compute routes only (no file storage)
   fastify.register(evaluateRoutes, { prefix: '/api' });
-  fastify.register(templateRoutes, { prefix: '/api/templates' });
   fastify.register(lintRoutes, { prefix: '/api' });
+  fastify.register(templateRoutes, { prefix: '/api/templates' });
   fastify.register(dataSourceRoutes, { prefix: '/api' });
   fastify.register(versionRoutes, { prefix: '/api' });
   fastify.register(inputTemplatesRoutes);

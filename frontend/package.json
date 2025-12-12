@@ -32,6 +32,7 @@
     "cmdk": "^1.1.1",
     "codemirror": "^6.0.2",
     "codemirror-lang-rego": "^0.1.0",
+    "firebase": "^12.6.0",
     "js-yaml": "^4.1.1",
     "lucide-react": "^0.554.0",
     "motion": "^12.23.24",

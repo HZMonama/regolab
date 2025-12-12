@@ -8,6 +8,17 @@ import { Editable, EditableArea, EditableInput, EditablePreview } from "@/compon
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { LintDiagnostic } from "./code-editor"
 import type { ErrorItem } from "./editor-panels"
+import { useAuth } from "@/lib/auth-context"
+import { 
+  subscribeToPolicies, 
+  savePolicy as firestoreSavePolicy, 
+  deletePolicy as firestoreDeletePolicy,
+  renamePolicy as firestoreRenamePolicy,
+  getPolicy as firestoreGetPolicy,
+  generatePolicyId,
+  WELCOME_POLICY,
+  type PolicyDocument
+} from "@/lib/firestore-service"
 
 interface PoliciesContextValue {
   policies: string[]
@@ -67,13 +78,15 @@ export function usePolicies() {
 }
 
 export function PoliciesProvider({ children }: { children: React.ReactNode }) {
+  const { user, loading: authLoading } = useAuth()
   const [policies, setPolicies] = React.useState<string[]>([])
+  const [policyDocs, setPolicyDocs] = React.useState<Map<string, PolicyDocument>>(new Map())
   const [selected, setSelected] = React.useState<string | null>(null)
   const [activePolicyContent, setActivePolicyContent] = React.useState<{ policy: string; input: string; data: string; test: string }>({
-    policy: "// Select a policy to edit",
-    input: "{}",
-    data: "{}",
-    test: ""
+    policy: WELCOME_POLICY.policy,
+    input: WELCOME_POLICY.input,
+    data: WELCOME_POLICY.data,
+    test: WELCOME_POLICY.test
   })
   const [output, setOutput] = React.useState<unknown>(null)
   const [activePanel, setActivePanel] = React.useState<string>("input")
@@ -83,89 +96,92 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
   const [testSummary, setTestSummary] = React.useState<TestSummary | null>(null)
   const [evaluationTimeMs, setEvaluationTimeMs] = React.useState<number | null>(null)
 
-  const fetchList = React.useCallback(async (signal?: AbortSignal) => {
-    try {
-      const res = await fetch("/policies", { signal })
-      if (!res.ok) return
-      const data = await res.json()
-      const list: string[] = data?.policies ?? []
-      setPolicies((prev) => {
-        try {
-          const prevJson = JSON.stringify(prev)
-          const newJson = JSON.stringify(list)
-          if (prevJson !== newJson) {
-            if (list.length === 0) toast("No policies found")
-            else toast.success(`Loaded ${list.length} policies`)
-          }
-        } catch {
-          // ignore JSON stringify errors
-        }
-        return list
+  // Subscribe to Firestore policies when authenticated
+  React.useEffect(() => {
+    if (authLoading) return
+
+    if (!user) {
+      // Unauthenticated: Clear cloud policies, use scratchpad mode
+      setPolicies([])
+      setPolicyDocs(new Map())
+      setSelected(null)
+      // Set welcome policy content for scratchpad mode
+      setActivePolicyContent({
+        policy: WELCOME_POLICY.policy,
+        input: WELCOME_POLICY.input,
+        data: WELCOME_POLICY.data,
+        test: WELCOME_POLICY.test
       })
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') return;
-      console.error("Failed to fetch policies", e)
-      toast.error("Failed to fetch policies")
+      return
     }
-  }, [])
 
-  React.useEffect(() => {
-    const controller = new AbortController();
-    void fetchList(controller.signal)
-    return () => controller.abort();
-  }, [fetchList])
+    // Authenticated: Subscribe to Firestore
+    const unsubscribe = subscribeToPolicies(
+      user.uid,
+      (policyDocuments) => {
+        const policyIds = policyDocuments.map((p) => p.id)
+        const docsMap = new Map<string, PolicyDocument>()
+        policyDocuments.forEach((p) => docsMap.set(p.id, p))
+        
+        setPolicies(policyIds)
+        setPolicyDocs(docsMap)
+        
+        // Auto-select first policy if none selected
+        if (policyIds.length > 0 && !selected) {
+          const firstPolicy = policyDocuments[0]
+          setSelected(firstPolicy.id)
+          setActivePolicyContent({
+            policy: firstPolicy.policy,
+            input: firstPolicy.input,
+            data: firstPolicy.data,
+            test: firstPolicy.test
+          })
+        }
+      },
+      (error) => {
+        console.error("Failed to sync policies:", error)
+        toast.error("Failed to sync policies from cloud")
+      }
+    )
 
-  // Auto-select first policy if none selected
-  React.useEffect(() => {
-    if (policies.length > 0 && !selected) {
-      setSelected(policies[0])
-    }
-  }, [policies, selected, setSelected])
+    return () => unsubscribe()
+  }, [user, authLoading, selected])
 
   const refresh = React.useCallback(async () => {
-    await fetchList()
-  }, [fetchList])
+    // For Firestore, the subscription handles real-time updates
+    // This is a no-op but kept for API compatibility
+  }, [])
 
   const createPolicy = React.useCallback(async (id?: string, content?: { policy: string; input: string; data: string; test?: string }) => {
-    try {
-      let newId = id
-      if (!newId) {
-        // Find next available policy number
-        const numbers = policies
-          .map(p => {
-            const match = p.match(/^policy-(\d+)$/)
-            return match ? parseInt(match[1]) : 0
-          })
-          .filter(n => !isNaN(n))
-        
-        const nextNum = numbers.length > 0 ? Math.max(...numbers) + 1 : 1
-        newId = `policy-${nextNum}`
-      }
+    if (!user) {
+      toast("Sign in with GitHub to save policies", {
+        action: {
+          label: "Sign In",
+          onClick: () => {
+            // Auth context will handle this via the header button
+          }
+        }
+      })
+      return null
+    }
 
+    try {
+      const newId = id || generatePolicyId(policies)
       const defaultContent = content || { 
-        policy: "package main\n\ndefault allow = false", 
+        policy: "package main\n\ndefault allow := false", 
         input: "{}", 
         data: "{}",
         test: ""
       }
-      const res = await fetch(`/policies/${encodeURIComponent(newId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(defaultContent),
+
+      await firestoreSavePolicy(user.uid, newId, {
+        policy: defaultContent.policy,
+        input: defaultContent.input,
+        data: defaultContent.data,
+        test: defaultContent.test || "",
+        name: newId
       })
-      if (!res.ok) {
-        const txt = await res.text()
-        console.error("failed to create policy", txt)
-        try {
-          const err = JSON.parse(txt)
-          toast.error(`Failed to create policy: ${err.details || err.error || txt}`)
-        } catch {
-          toast.error("Failed to create policy")
-        }
-        return null
-      }
-      // refresh and select
-      await fetchList()
+
       setSelected(newId)
       setActivePolicyContent({ ...defaultContent, test: defaultContent.test || "" })
       toast.success(`Created policy ${newId}`)
@@ -175,36 +191,66 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
       toast.error("Failed to create policy")
       return null
     }
-  }, [fetchList, policies])
+  }, [user, policies])
 
   const loadPolicy = React.useCallback(async (id: string) => {
+    if (!user) {
+      // In scratchpad mode, no policies to load
+      return null
+    }
+
     try {
-      const res = await fetch(`/policies/${encodeURIComponent(id)}`)
-      if (!res.ok) {
+      // First check if we have it in the local cache from subscription
+      const cached = policyDocs.get(id)
+      if (cached) {
+        return {
+          policy: cached.policy,
+          input: cached.input,
+          data: cached.data,
+          test: cached.test
+        }
+      }
+
+      // Otherwise fetch from Firestore
+      const policyDoc = await firestoreGetPolicy(user.uid, id)
+      if (!policyDoc) {
         toast.error("Failed to load policy")
         return null
       }
-      const data = await res.json()
-      // Ensure test field exists
-      return { ...data.files, test: data.files.test || "" }
+      return {
+        policy: policyDoc.policy,
+        input: policyDoc.input,
+        data: policyDoc.data,
+        test: policyDoc.test
+      }
     } catch (e) {
       console.error("loadPolicy error", e)
       toast.error("Failed to load policy")
       return null
     }
-  }, [])
+  }, [user, policyDocs])
 
   const savePolicy = React.useCallback(async (id: string, files: { policy: string; input: string; data: string; test: string }) => {
-    try {
-      const res = await fetch(`/policies/${encodeURIComponent(id)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(files),
+    if (!user) {
+      toast("Sign in with GitHub to save policies", {
+        action: {
+          label: "Sign In",
+          onClick: () => {
+            // Auth context will handle this via the header button
+          }
+        }
       })
-      if (!res.ok) {
-        toast.error("Failed to save policy")
-        return false
-      }
+      return false
+    }
+
+    try {
+      await firestoreSavePolicy(user.uid, id, {
+        policy: files.policy,
+        input: files.input,
+        data: files.data,
+        test: files.test,
+        name: id
+      })
       toast.success(`Saved policy ${id}`)
       return true
     } catch (e) {
@@ -212,27 +258,17 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
       toast.error("Failed to save policy")
       return false
     }
-  }, [])
+  }, [user])
 
   const renamePolicy = React.useCallback(async (id: string, newId: string) => {
+    if (!user) {
+      toast.error("Sign in to rename policies")
+      return false
+    }
+
     try {
-      const res = await fetch(`/policies/${encodeURIComponent(id)}/rename`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newId }),
-      })
-      if (!res.ok) {
-        const txt = await res.text()
-        try {
-          const err = JSON.parse(txt)
-          toast.error(`Failed to rename policy: ${err.details || err.error || txt}`)
-        } catch {
-          toast.error("Failed to rename policy")
-        }
-        return false
-      }
+      await firestoreRenamePolicy(user.uid, id, newId)
       toast.success(`Renamed policy to ${newId}`)
-      await fetchList()
       if (selected === id) setSelected(newId)
       return true
     } catch (e) {
@@ -240,39 +276,90 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
       toast.error("Failed to rename policy")
       return false
     }
-  }, [fetchList, selected])
+  }, [user, selected])
 
   const deletePolicy = React.useCallback(async (id: string) => {
+    if (!user) {
+      toast.error("Sign in to delete policies")
+      return false
+    }
+
     try {
-      const res = await fetch(`/policies/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      })
-      if (!res.ok) {
-        toast.error("Failed to delete policy")
-        return false
-      }
+      await firestoreDeletePolicy(user.uid, id)
       toast.success(`Deleted policy ${id}`)
-      await fetchList()
-      if (selected === id) setSelected(null)
+      if (selected === id) {
+        setSelected(null)
+        // Reset to welcome policy
+        setActivePolicyContent({
+          policy: WELCOME_POLICY.policy,
+          input: WELCOME_POLICY.input,
+          data: WELCOME_POLICY.data,
+          test: WELCOME_POLICY.test
+        })
+      }
       return true
     } catch (e) {
       console.error("deletePolicy error", e)
       toast.error("Failed to delete policy")
       return false
     }
-  }, [fetchList, selected])
+  }, [user, selected])
 
   const downloadPolicy = React.useCallback(async (id: string) => {
     try {
-      window.open(`/policies/${encodeURIComponent(id)}/download`, '_blank')
+      // Get the policy content
+      const policyData = policyDocs.get(id) || (user ? await firestoreGetPolicy(user.uid, id) : null)
+      
+      if (!policyData && !user) {
+        // For scratchpad mode, download current content
+        const content = JSON.stringify({
+          policy: activePolicyContent.policy,
+          input: activePolicyContent.input,
+          data: activePolicyContent.data,
+          test: activePolicyContent.test
+        }, null, 2)
+        
+        const blob = new Blob([content], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `scratchpad-policy.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        return
+      }
+      
+      if (!policyData) {
+        toast.error("Policy not found")
+        return
+      }
+
+      const content = JSON.stringify({
+        policy: policyData.policy,
+        input: policyData.input,
+        data: policyData.data,
+        test: policyData.test
+      }, null, 2)
+      
+      const blob = new Blob([content], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${id}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
     } catch (e) {
       console.error("downloadPolicy error", e)
       toast.error("Failed to download policy")
     }
-  }, [])
+  }, [user, policyDocs, activePolicyContent])
 
   const handleEvaluate = React.useCallback(async () => {
-    if (!selected) return;
+    // Allow evaluation even without a selected policy (scratchpad mode)
     try {
       const res = await fetch("/api/evaluate", {
         method: "POST",
@@ -309,7 +396,7 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
       setActivePanel("errors");
       return { error: "Failed to connect to server" };
     }
-  }, [selected, activePolicyContent]);
+  }, [activePolicyContent]);
 
   const handleFormat = React.useCallback(async () => {
     // Format Rego
@@ -349,11 +436,6 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
   }, [activePolicyContent]);
 
   const handleTest = React.useCallback(async () => {
-    if (!selected) {
-      toast.error("No policy selected");
-      return;
-    }
-
     if (!activePolicyContent.test || activePolicyContent.test.trim().length === 0) {
       toast.error("No test file content. Add tests using the flask toggle in the policy editor.");
       return;
@@ -394,7 +476,7 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
       setTestResults([]);
       setTestSummary(null);
     }
-  }, [selected, activePolicyContent]);
+  }, [activePolicyContent]);
 
   const value = React.useMemo(
     () => ({ 

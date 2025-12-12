@@ -13,9 +13,6 @@ import {
   FloppyDisk, 
   Lightning,
   MagnifyingGlass,
-  ArrowsClockwise,
-  CheckCircle,
-  ArrowSquareOut,
 } from "phosphor-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -321,99 +318,9 @@ export const ConfigDrawer: React.FC<Props> = function ConfigDrawer(props) {
                 </div>
               </section>
 
-              {/* Dashed separator */}
-              <div className="border-t border-dashed border-border" />
-
-              {/* ============================================================ */}
-              {/* 3. Updates */}
-              {/* ============================================================ */}
-              <section>
-                <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
-                  <ArrowsClockwise weight="duotone" className="w-4 h-4" />
-                  Updates
-                </h3>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Check for new versions of RegoLab.
-                </p>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-zinc-900/30">
-                    <div>
-                      <span className="text-sm text-foreground">Current Version</span>
-                      <p className="text-xs text-muted-foreground font-mono">
-                        v{versionInfo.current}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-xs"
-                      onClick={checkForUpdates}
-                      disabled={isCheckingUpdates}
-                    >
-                      {isCheckingUpdates ? (
-                        <>
-                          <ArrowsClockwise className="w-3 h-3 mr-1 animate-spin" />
-                          Checking...
-                        </>
-                      ) : (
-                        <>
-                          <ArrowsClockwise className="w-3 h-3 mr-1" />
-                          Check for Updates
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  
-                  {versionInfo.latest && (
-                    <div className={cn(
-                      "p-3 rounded-lg border",
-                      versionInfo.updateAvailable 
-                        ? "border-emerald-700/50 bg-emerald-900/20" 
-                        : "border-border bg-zinc-900/30"
-                    )}>
-                      {versionInfo.updateAvailable ? (
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-sm text-emerald-400 font-medium">
-                              Update Available!
-                            </span>
-                            <p className="text-xs text-muted-foreground font-mono">
-                              v{versionInfo.latest}
-                            </p>
-                          </div>
-                          {versionInfo.releaseUrl && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs border-emerald-700 text-emerald-400 hover:bg-emerald-900/30"
-                              onClick={() => window.open(versionInfo.releaseUrl!, '_blank')}
-                            >
-                              <ArrowSquareOut className="w-3 h-3 mr-1" />
-                              View Release
-                            </Button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-emerald-500" weight="fill" />
-                          <span className="text-sm text-foreground">You&apos;re up to date!</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {versionInfo.checkedAt && (
-                    <p className="text-xs text-muted-foreground text-center">
-                      Last checked: {new Date(versionInfo.checkedAt).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-              </section>
-
             </div>
 
-            {/* footer removed — close action moved into header */}
+
           </div>
         </Drawer.Content>
       </Drawer.Portal>
