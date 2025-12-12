@@ -38,5 +38,5 @@ ENV PORT=8080
 # Expose port (Cloud Run uses 8080 by default)
 EXPOSE 8080
 
-# Start command
-CMD ["npm", "start"]
+# Start command - use node directly for faster startup
+CMD ["node", "src/server.js"]
