@@ -97,15 +97,16 @@ export const ExamplesDrawer: React.FC<Props> = function ExamplesDrawer(props) {
   }, [templates, selectedCategory, searchQuery])
 
   const handleTemplateClick = async (template: Template) => {
-    let customId = template.id
+    // Sanitize ID: replace slashes with hyphens for Firestore compatibility
+    let customId = template.id.replace(/\//g, '-')
     
     // If policy with this name exists, append a number
     if (policies.includes(customId)) {
       let counter = 1
-      while (policies.includes(`${template.id}-${counter}`)) {
+      while (policies.includes(`${customId}-${counter}`)) {
         counter++
       }
-      customId = `${template.id}-${counter}`
+      customId = `${customId}-${counter}`
     }
     
     const createdId = await createPolicy(customId, {

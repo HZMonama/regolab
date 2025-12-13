@@ -97,7 +97,8 @@ export function DataSourcePicker({ onInsert, open: controlledOpen, onOpenChange 
 
   const handleSelect = useCallback(async (ds: DataSourceTemplate) => {
     try {
-      const res = await fetch(`/api/data-sources/${ds.id}`);
+      const { API_ENDPOINTS } = await import('@/lib/api-config');
+      const res = await fetch(`${API_ENDPOINTS.dataSources}/${ds.id}`);
       if (!res.ok) throw new Error("Failed to fetch template");
       const data = await res.json();
       

@@ -92,7 +92,8 @@ export function InputTemplatePicker({ onSelect, currentValue }: InputTemplatePic
     }
 
     try {
-      const res = await fetch(`/api/input-templates/${templateId}`);
+      const { API_ENDPOINTS } = await import('@/lib/api-config');
+      const res = await fetch(`${API_ENDPOINTS.inputTemplates}/${templateId}`);
       if (!res.ok) throw new Error("Failed to fetch template");
       const data = await res.json();
       
