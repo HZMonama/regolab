@@ -24,9 +24,10 @@ export const templateRoutes = async (fastify) => {
     }
   });
 
-  // Get template by ID
-  fastify.get('/:id', async (request, reply) => {
-    const { id } = request.params;
+  // Get template by ID (using wildcard to match paths with slashes)
+  fastify.get('/*', async (request, reply) => {
+    // Extract the full path after /api/templates/
+    const id = request.params['*'];
 
     try {
       const template = await getTemplate(id);
