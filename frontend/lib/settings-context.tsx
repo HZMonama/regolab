@@ -315,7 +315,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const checkForUpdates = useCallback(async () => {
     setIsCheckingUpdates(true);
     try {
-      const res = await fetch("/api/version/check");
+      const { API_ENDPOINTS } = await import('@/lib/api-config');
+      const res = await fetch(API_ENDPOINTS.versionCheck);
       if (!res.ok) throw new Error("Failed to check for updates");
       const data = await res.json();
       

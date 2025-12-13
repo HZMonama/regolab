@@ -16,7 +16,8 @@ export function ServerBadge() {
       setIsChecking(true);
     }
     try {
-      const res = await fetch("/api/opa/status");
+      const { API_ENDPOINTS } = await import('@/lib/api-config');
+      const res = await fetch(API_ENDPOINTS.opaStatus);
       const data = await res.json();
       setAvailable(data.available);
       setVersion(data.version || "unknown");

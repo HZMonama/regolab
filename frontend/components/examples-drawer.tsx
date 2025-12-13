@@ -73,7 +73,7 @@ export const ExamplesDrawer: React.FC<Props> = function ExamplesDrawer(props) {
   React.useEffect(() => {
     if (open) {
       setLoading(true)
-      fetch("/api/templates")
+      import('@/lib/api-config').then(({ API_ENDPOINTS }) => fetch(API_ENDPOINTS.templates))
         .then(res => res.json())
         .then(data => {
           if (data.success) {

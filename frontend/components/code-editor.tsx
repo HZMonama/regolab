@@ -107,7 +107,8 @@ export function CodeEditor({
       }
 
       try {
-        const response = await fetch('/api/lint', {
+        const { API_ENDPOINTS } = await import('@/lib/api-config');
+        const response = await fetch(API_ENDPOINTS.lint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ policy: doc }),

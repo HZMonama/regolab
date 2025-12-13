@@ -56,7 +56,8 @@ export function DataSourcePicker({ onInsert, open: controlledOpen, onOpenChange 
     const fetchDataSources = async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/data-sources");
+        const { API_ENDPOINTS } = await import('@/lib/api-config');
+        const res = await fetch(API_ENDPOINTS.dataSources);
         if (!res.ok) throw new Error("Failed to fetch data sources");
         const data = await res.json();
         setDataSources(data.dataSources || []);

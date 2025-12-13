@@ -19,6 +19,7 @@ import {
   WELCOME_POLICY,
   type PolicyDocument
 } from "@/lib/firestore-service"
+import { API_ENDPOINTS } from "@/lib/api-config"
 
 interface PoliciesContextValue {
   policies: string[]
@@ -361,7 +362,7 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
   const handleEvaluate = React.useCallback(async () => {
     // Allow evaluation even without a selected policy (scratchpad mode)
     try {
-      const res = await fetch("/api/evaluate", {
+      const res = await fetch(API_ENDPOINTS.evaluate, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -401,7 +402,7 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
   const handleFormat = React.useCallback(async () => {
     // Format Rego
     try {
-      const res = await fetch("/api/format", {
+      const res = await fetch(API_ENDPOINTS.format, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ policy: activePolicyContent.policy }),
@@ -442,7 +443,7 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const res = await fetch("/api/test", {
+      const res = await fetch(API_ENDPOINTS.test, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
