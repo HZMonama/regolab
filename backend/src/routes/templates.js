@@ -65,11 +65,28 @@ async function listTemplates() {
             const metaContent = await fs.readFile(metaPath, 'utf-8');
             const meta = JSON.parse(metaContent);
             
+            // Read the files to include in the response
+            const [policy, input, data, test] = await Promise.all([
+              fs.readFile(path.join(templatePath, 'policy.rego'), 'utf-8').catch(() => ''),
+              fs.readFile(path.join(templatePath, 'input.json'), 'utf-8').catch(() => '{}'),
+              fs.readFile(path.join(templatePath, 'data.json'), 'utf-8').catch(() => '{}'),
+              fs.readFile(path.join(templatePath, 'test.rego'), 'utf-8').catch(() => '')
+            ]);
+            
             templates.push({
               id: `${category}/${templateDir}`,
-              title: meta.title,
-              description: meta.description,
-              category: meta.category
+              category: category,
+              meta: {
+                title: meta.title,
+                description: meta.description,
+                category: meta.category
+              },
+              files: {
+                policy,
+                input,
+                data,
+                test
+              }
             });
           } catch (err) {
             // Skip templates without valid meta.json
@@ -85,22 +102,30 @@ async function listTemplates() {
 
 async function getTemplate(id) {
   const templatePath = path.join(TEMPLATES_DIR, id);
+  const category = id.split('/')[0];
   
   // Read all template files
   const [meta, policy, input, data, test] = await Promise.all([
     fs.readFile(path.join(templatePath, 'meta.json'), 'utf-8').then(JSON.parse),
-    fs.readFile(path.join(templatePath, 'policy.rego'), 'utf-8').catch(() => null),
-    fs.readFile(path.join(templatePath, 'input.json'), 'utf-8').then(JSON.parse).catch(() => null),
-    fs.readFile(path.join(templatePath, 'data.json'), 'utf-8').then(JSON.parse).catch(() => null),
-    fs.readFile(path.join(templatePath, 'test.rego'), 'utf-8').catch(() => null)
+    fs.readFile(path.join(templatePath, 'policy.rego'), 'utf-8').catch(() => ''),
+    fs.readFile(path.join(templatePath, 'input.json'), 'utf-8').catch(() => '{}'),
+    fs.readFile(path.join(templatePath, 'data.json'), 'utf-8').catch(() => '{}'),
+    fs.readFile(path.join(templatePath, 'test.rego'), 'utf-8').catch(() => '')
   ]);
 
   return {
     id,
-    ...meta,
-    policy,
-    input,
-    data,
-    test
+    category,
+    meta: {
+      title: meta.title,
+      description: meta.description,
+      category: meta.category
+    },
+    files: {
+      policy,
+      input,
+      data,
+      test
+    }
   };
 }
