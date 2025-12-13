@@ -12,7 +12,7 @@ export default async function (fastify, opts) {
   // Register CORS - allow multiple origins for Cloud Run deployment
   const allowedOrigins = process.env.CORS_ORIGIN 
     ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-    : ['http://localhost:3000'];
+    : ['http://localhost:3000', 'https://regolab.maynframe.xyz'];
   
   fastify.register(cors, {
     origin: (origin, cb) => {
