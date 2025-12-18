@@ -9,7 +9,7 @@ import { PolicyPanelToggle } from "@/components/policy-panel"
 import { Combobox } from "@/components/ui/combobox"
 import { Kbd } from "@/components/ui/kbd"
 import { usePolicies } from "@/components/files-list"
-import { Drawer } from "vaul"
+import { ExportDrawer } from "@/components/export-drawer"
 
 export function AppHeader() {
   const { selected, activePolicyContent, savePolicy, handleEvaluate, handleFormat, handleTest } = usePolicies();
@@ -97,22 +97,7 @@ export function AppHeader() {
         </div>
       </div>
       
-      <Drawer.Root open={exportOpen} onOpenChange={setExportOpen}>
-        <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-black/40 z-50" />
-          <Drawer.Content className="bg-card flex flex-col rounded-t-[10px] h-[80%] mt-24 fixed bottom-0 left-0 right-0 z-50">
-            <div className="p-4 bg-card rounded-t-[10px] flex-1 overflow-auto">
-              <div className="mx-auto w-12 h-1.5 shrink-0 rounded-full bg-muted mb-8" />
-              <div className="max-w-4xl mx-auto">
-                <Drawer.Title className="font-display text-2xl mb-4">
-                  Export Policy
-                </Drawer.Title>
-                {/* TODO: Add export functionality */}
-              </div>
-            </div>
-          </Drawer.Content>
-        </Drawer.Portal>
-      </Drawer.Root>
+      <ExportDrawer open={exportOpen} onOpenChange={setExportOpen} />
     </header>
   )
 }

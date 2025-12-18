@@ -5,6 +5,7 @@ import { lintRoutes } from './routes/lint.js';
 import { dataSourceRoutes } from './routes/data-sources.js';
 import { versionRoutes } from './routes/version.js';
 import inputTemplatesRoutes from './routes/input-templates.js';
+import { githubRoutes } from './routes/github.js';
 
 export default async function (fastify, opts) {
   console.log('Fastify plugin loaded');
@@ -43,4 +44,5 @@ export default async function (fastify, opts) {
   fastify.register(dataSourceRoutes, { prefix: '/api' });
   fastify.register(versionRoutes, { prefix: '/api' });
   fastify.register(inputTemplatesRoutes);
+  fastify.register(githubRoutes, { prefix: '/api/github' });
 }
