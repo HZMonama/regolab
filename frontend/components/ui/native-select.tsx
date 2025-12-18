@@ -28,8 +28,17 @@ function NativeSelect({ className, ...props }: React.ComponentProps<"select">) {
   )
 }
 
-function NativeSelectOption({ ...props }: React.ComponentProps<"option">) {
-  return <option data-slot="native-select-option" {...props} />
+function NativeSelectOption({ className, ...props }: React.ComponentProps<"option">) {
+  return (
+    <option 
+      data-slot="native-select-option" 
+      className={cn(
+        "bg-zinc-900 text-zinc-100",
+        className
+      )}
+      {...props} 
+    />
+  )
 }
 
 function NativeSelectOptGroup({

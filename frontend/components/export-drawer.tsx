@@ -6,9 +6,10 @@ import { Drawer } from "vaul"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { usePolicies } from "@/components/files-list"
 import { toast } from "sonner"
-import { GithubLogo, GitBranch, Upload, FolderSimple, ChatText, SignOut, ArrowsClockwise } from "phosphor-react"
+import { GithubLogo, GitBranch, Upload, FolderSimple, ChatText, SignOut, ArrowsClockwise, Plus, Lock, Globe } from "phosphor-react"
 import { API_BASE_URL } from "@/lib/api-config"
 
 type Props = {
@@ -52,6 +53,13 @@ export const ExportDrawer: React.FC<Props> = function ExportDrawer({ open, onOpe
   const [loadingRepos, setLoadingRepos] = React.useState(false)
   const [loadingBranches, setLoadingBranches] = React.useState(false)
   const [publishing, setPublishing] = React.useState(false)
+  
+  // Create repo dialog state
+  const [createRepoOpen, setCreateRepoOpen] = React.useState(false)
+  const [newRepoName, setNewRepoName] = React.useState("")
+  const [newRepoDescription, setNewRepoDescription] = React.useState("")
+  const [newRepoPrivate, setNewRepoPrivate] = React.useState(true)
+  const [creatingRepo, setCreatingRepo] = React.useState(false)
 
   // Check for GitHub token in URL on mount (from OAuth callback)
   React.useEffect(() => {
@@ -192,6 +200,51 @@ export const ExportDrawer: React.FC<Props> = function ExportDrawer({ open, onOpe
     toast.success("Disconnected from GitHub")
   }
 
+  const createRepository = async () => {
+    if (!githubToken || !newRepoName.trim()) return
+    
+    setCreatingRepo(true)
+    try {
+      const response = await fetch('https://api.github.com/user/repos', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${githubToken}`,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newRepoName.trim(),
+          description: newRepoDescription.trim() || `Policy repository created via RegoLab`,
+          private: newRepoPrivate,
+          auto_init: true, // Initialize with README so we have a branch to commit to
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to create repository')
+      }
+
+      const newRepo = await response.json()
+      toast.success(`Repository "${newRepo.full_name}" created!`)
+      
+      // Refresh repos and select the new one
+      await fetchRepos()
+      setSelectedRepo(newRepo.full_name)
+      
+      // Close dialog and reset form
+      setCreateRepoOpen(false)
+      setNewRepoName("")
+      setNewRepoDescription("")
+      setNewRepoPrivate(true)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`Failed to create repository: ${message}`)
+    } finally {
+      setCreatingRepo(false)
+    }
+  }
+
   const handlePublish = async () => {
     if (!githubToken || !selectedRepo || !selected) return
     
@@ -320,23 +373,46 @@ export const ExportDrawer: React.FC<Props> = function ExportDrawer({ open, onOpe
                   <div className="space-y-2">
                     <label className="text-sm font-medium flex items-center justify-between">
                       Repository
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={fetchRepos}
-                        disabled={loadingRepos}
-                        className="h-6 w-6"
-                      >
-                        <ArrowsClockwise className={`w-3 h-3 ${loadingRepos ? 'animate-spin' : ''}`} />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => setCreateRepoOpen(true)}
+                          className="h-6 w-6"
+                          title="Create new repository"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={fetchRepos}
+                          disabled={loadingRepos}
+                          className="h-6 w-6"
+                          title="Refresh repositories"
+                        >
+                          <ArrowsClockwise className={`w-3 h-3 ${loadingRepos ? 'animate-spin' : ''}`} />
+                        </Button>
+                      </div>
                     </label>
                     {loadingRepos ? (
                       <div className="h-10 flex items-center text-sm text-muted-foreground">
                         Loading repositories...
                       </div>
                     ) : repos.length === 0 ? (
-                      <div className="h-10 flex items-center text-sm text-muted-foreground">
-                        No repositories found
+                      <div className="flex flex-col gap-2">
+                        <div className="text-sm text-muted-foreground">
+                          No repositories found
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setCreateRepoOpen(true)}
+                          className="w-fit gap-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Create Repository
+                        </Button>
                       </div>
                     ) : (
                       <NativeSelect 
@@ -449,6 +525,86 @@ export const ExportDrawer: React.FC<Props> = function ExportDrawer({ open, onOpe
           </div>
         </Drawer.Content>
       </Drawer.Portal>
+
+      {/* Create Repository Dialog */}
+      <Dialog open={createRepoOpen} onOpenChange={setCreateRepoOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GithubLogo weight="fill" className="w-5 h-5" />
+              Create New Repository
+            </DialogTitle>
+            <DialogDescription>
+              Create a new GitHub repository to store your policies.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Repository Name</label>
+              <Input
+                value={newRepoName}
+                onChange={(e) => setNewRepoName(e.target.value)}
+                placeholder="my-opa-policies"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description (optional)</label>
+              <Input
+                value={newRepoDescription}
+                onChange={(e) => setNewRepoDescription(e.target.value)}
+                placeholder="OPA policies managed with RegoLab"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Visibility</label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={newRepoPrivate ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setNewRepoPrivate(true)}
+                  className="flex-1 gap-2"
+                >
+                  <Lock className="w-4 h-4" />
+                  Private
+                </Button>
+                <Button
+                  type="button"
+                  variant={!newRepoPrivate ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setNewRepoPrivate(false)}
+                  className="flex-1 gap-2"
+                >
+                  <Globe className="w-4 h-4" />
+                  Public
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateRepoOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={createRepository} 
+              disabled={creatingRepo || !newRepoName.trim()}
+              className="gap-2"
+            >
+              {creatingRepo ? (
+                <>
+                  <ArrowsClockwise className="w-4 h-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  Create Repository
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Drawer.Root>
   )
 }
