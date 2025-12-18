@@ -1,14 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { BookOpen, GearSix, PlusCircle, Bookmark, GithubLogo, SignOut } from "phosphor-react"
+import { BookOpen, GearSix, PlusCircle, Bookmark, GithubLogo, SignOut, Sidebar } from "phosphor-react"
 import ConfigDrawer from "@/components/config-drawer"
 import ExamplesDrawer from "@/components/examples-drawer"
 import { cn } from "@/lib/utils"
 import { Kbd } from "@/components/ui/kbd"
 import Link from "next/link"
+import Image from "next/image"
 import FilesList, { usePolicies } from "@/components/files-list"
-import { PanelLeftIcon } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
@@ -100,8 +100,8 @@ export function PolicyPanel({ className }: PolicyPanelProps) {
   return (
     <div 
       className={cn(
-        "flex flex-col h-full bg-sidebar text-sidebar-foreground transition-[width,opacity,padding] duration-200 ease-in-out overflow-hidden rounded-lg border border-sidebar-border",
-        isOpen ? "w-64 opacity-100" : "w-0 opacity-0 p-0 border-0",
+        "flex flex-col h-full bg-sidebar text-sidebar-foreground transition-[width,opacity,padding,margin] duration-200 ease-in-out overflow-hidden rounded-lg border border-sidebar-border",
+        isOpen ? "w-64 opacity-100 mr-2" : "w-0 opacity-0 p-0 border-0 mr-0",
         className
       )}
     >
@@ -165,9 +165,11 @@ export function PolicyPanel({ className }: PolicyPanelProps) {
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-sidebar-accent hover:bg-purple-900 hover:text-purple-200 text-muted-foreground transition-colors"
               >
                 {user.photoURL ? (
-                  <img 
-                    src={user.photoURL} 
-                    alt={user.displayName || 'User'} 
+                  <Image
+                    src={user.photoURL}
+                    alt={user.displayName || 'User'}
+                    width={20}
+                    height={20}
                     className="w-5 h-5 rounded-full"
                   />
                 ) : (
@@ -249,17 +251,26 @@ export function PolicyPanel({ className }: PolicyPanelProps) {
 // Toggle button component for header or elsewhere
 export function PolicyPanelToggle({ className }: { className?: string }) {
   const { isOpen, toggle } = usePolicyPanel()
+  const [hovered, setHovered] = React.useState(false)
+  const filled = isOpen || hovered
 
   return (
     <button
+      type="button"
       onClick={toggle}
       aria-label={isOpen ? "Hide Policy Panel" : "Show Policy Panel"}
       className={cn(
-        "inline-flex items-center gap-2 h-8 px-2 rounded-md text-muted-foreground hover:bg-accent",
+        "inline-flex items-center gap-2 h-8 px-2 rounded-md text-muted-foreground hover:text-foreground transition-colors",
         className
       )}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
     >
-      <PanelLeftIcon className="w-4 h-4 stroke-current text-muted-foreground group-hover:text-foreground group-hover:fill-current group-hover:stroke-none transition-colors" />
+      <Sidebar className="w-4 h-4" weight={filled ? "fill" : "regular"} />
       <Kbd>Ctrl+B</Kbd>
     </button>
   )

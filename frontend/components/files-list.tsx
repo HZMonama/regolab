@@ -3,9 +3,20 @@
 import * as React from "react"
 import { toast } from "sonner"
 import { Popover, PopoverContent } from "@/components/ui/popover"
-import { Pencil, Trash, DownloadSimple, FileText } from "phosphor-react"
+import { Pencil, Trash, DownloadSimple, FileText, LinkSimple } from "phosphor-react"
 import { Editable, EditableArea, EditableInput, EditablePreview } from "@/components/ui/editable"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import type { LintDiagnostic } from "./code-editor"
 import type { ErrorItem } from "./editor-panels"
 import { useAuth } from "@/lib/auth-context"
@@ -20,6 +31,7 @@ import {
   type PolicyDocument
 } from "@/lib/firestore-service"
 import { API_ENDPOINTS } from "@/lib/api-config"
+import { createShareForPolicy, type ShareExpirationPreset } from "@/lib/share-service"
 
 interface PoliciesContextValue {
   policies: string[]
@@ -519,6 +531,8 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function FilesList({ className }: { className?: string }) {
+  const { user } = useAuth()
+
   const _ctx = React.useContext(PoliciesContext)
   const ctx = _ctx ?? {
     policies: [] as string[],
@@ -556,6 +570,10 @@ export function FilesList({ className }: { className?: string }) {
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = React.useState<string | null>(null)
 
+  const [hoveredContextAction, setHoveredContextAction] = React.useState<
+    "edit" | "share" | "download" | "delete" | null
+  >(null)
+
   const [contextMenu, setContextMenu] = React.useState<{
     open: boolean
     x: number
@@ -563,12 +581,28 @@ export function FilesList({ className }: { className?: string }) {
     file?: string | null
   }>({ open: false, x: 0, y: 0, file: null })
 
+  const [shareDialogOpen, setShareDialogOpen] = React.useState(false)
+  const [shareTarget, setShareTarget] = React.useState<string | null>(null)
+  const [shareExpiration, setShareExpiration] = React.useState<ShareExpirationPreset>("7d")
+  const [shareUrl, setShareUrl] = React.useState<string | null>(null)
+  const [shareCreating, setShareCreating] = React.useState(false)
+
   const [resetKeys, setResetKeys] = React.useState<Record<string, number>>({})
 
   const closeContext = React.useCallback(() => {
     setContextMenu((s) => ({ ...s, open: false }))
     setPendingDelete(null)
+    setHoveredContextAction(null)
   }, [])
+
+  React.useEffect(() => {
+    if (!shareDialogOpen) {
+      setShareTarget(null)
+      setShareExpiration("7d")
+      setShareUrl(null)
+      setShareCreating(false)
+    }
+  }, [shareDialogOpen])
 
   // Empty state: show a CTA when there are no policies
   if (policies.length === 0) {
@@ -646,7 +680,10 @@ export function FilesList({ className }: { className?: string }) {
 
       <Popover open={contextMenu.open} onOpenChange={(v) => {
         setContextMenu((s) => ({ ...s, open: v }))
-        if (!v) setPendingDelete(null)
+        if (!v) {
+          setPendingDelete(null)
+          setHoveredContextAction(null)
+        }
       }}>
         <PopoverContent
           sideOffset={4}
@@ -658,6 +695,8 @@ export function FilesList({ className }: { className?: string }) {
               type="button"
               aria-label={contextMenu.file ? `Edit ${contextMenu.file}` : "Edit"}
               className="flex align-start items-center gap-2 w-full text-left text-sm px-2 py-1 rounded hover:bg-accent/50 text-foreground"
+              onMouseEnter={() => setHoveredContextAction("edit")}
+              onMouseLeave={() => setHoveredContextAction(null)}
               onClick={() => {
                 if (contextMenu.file) {
                   setEditingId(contextMenu.file)
@@ -665,13 +704,33 @@ export function FilesList({ className }: { className?: string }) {
                 }
               }}
             >
-              <Pencil size={16} />
+              <Pencil size={16} weight={hoveredContextAction === "edit" ? "fill" : "regular"} />
               <span>Edit</span>
             </button>
+
+            <button
+              type="button"
+              aria-label={contextMenu.file ? `Share ${contextMenu.file}` : "Share"}
+              className="flex align-start items-center gap-2 w-full text-left text-sm px-2 py-1 rounded hover:bg-accent/50 text-foreground"
+              onMouseEnter={() => setHoveredContextAction("share")}
+              onMouseLeave={() => setHoveredContextAction(null)}
+              onClick={() => {
+                if (!contextMenu.file) return
+                setShareTarget(contextMenu.file)
+                setShareDialogOpen(true)
+                closeContext()
+              }}
+            >
+              <LinkSimple size={16} weight={hoveredContextAction === "share" ? "fill" : "regular"} />
+              <span>Share...</span>
+            </button>
+
             <button
               type="button"
               aria-label={contextMenu.file ? `Download ${contextMenu.file}` : "Download"}
               className="flex align-start items-center gap-2 w-full text-left text-sm px-2 py-1 rounded hover:bg-accent/50 text-foreground"
+              onMouseEnter={() => setHoveredContextAction("download")}
+              onMouseLeave={() => setHoveredContextAction(null)}
               onClick={() => {
                 if (contextMenu.file) {
                   downloadPolicy(contextMenu.file)
@@ -679,13 +738,15 @@ export function FilesList({ className }: { className?: string }) {
                 }
               }}
             >
-              <DownloadSimple size={16} />
+              <DownloadSimple size={16} weight={hoveredContextAction === "download" ? "fill" : "regular"} />
               <span>Download</span>
             </button>
             <button
               type="button"
               aria-label={contextMenu.file ? `Delete ${contextMenu.file}` : "Delete"}
               className="flex align-start items-center gap-2 w-full text-left text-sm px-2 py-1 rounded hover:bg-destructive/10 text-destructive"
+              onMouseEnter={() => setHoveredContextAction("delete")}
+              onMouseLeave={() => setHoveredContextAction(null)}
               onClick={() => {
                 if (contextMenu.file) {
                   if (pendingDelete === contextMenu.file) {
@@ -699,12 +760,101 @@ export function FilesList({ className }: { className?: string }) {
                 }
               }}
             >
-              <Trash size={16} />
+              <Trash size={16} weight={hoveredContextAction === "delete" ? "fill" : "regular"} />
               <span>{pendingDelete === contextMenu.file ? "Sure?" : "Delete"}</span>
             </button>
           </div>
         </PopoverContent>
       </Popover>
+
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share policy</DialogTitle>
+            <DialogDescription>
+              Creates a link anyone can open. They can edit, but can only save after signing in.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm text-muted-foreground">Expiration</div>
+              <NativeSelect
+                value={shareExpiration}
+                onChange={(e) => setShareExpiration(e.target.value as ShareExpirationPreset)}
+              >
+                <NativeSelectOption value="1h">1 hour</NativeSelectOption>
+                <NativeSelectOption value="1d">1 day</NativeSelectOption>
+                <NativeSelectOption value="7d">7 days</NativeSelectOption>
+                <NativeSelectOption value="30d">30 days</NativeSelectOption>
+                <NativeSelectOption value="never">Never</NativeSelectOption>
+              </NativeSelect>
+            </div>
+
+            {shareUrl && (
+              <div className="flex items-center gap-2">
+                <Input readOnly value={shareUrl} />
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(shareUrl)
+                      toast.success("Copied share link")
+                    } catch {
+                      toast.error("Failed to copy")
+                    }
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShareDialogOpen(false)}
+              disabled={shareCreating}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!shareTarget) return
+                if (!user) {
+                  toast.error("Sign in to share policies")
+                  return
+                }
+
+                try {
+                  setShareCreating(true)
+                  const result = await createShareForPolicy({
+                    userId: user.uid,
+                    policyId: shareTarget,
+                    expiration: shareExpiration,
+                  })
+                  setShareUrl(result.url)
+                  try {
+                    await navigator.clipboard.writeText(result.url)
+                    toast.success("Share link copied")
+                  } catch {
+                    toast.success("Share link created")
+                  }
+                } catch (e) {
+                  console.error("Failed to create share", e)
+                  toast.error("Failed to create share link")
+                } finally {
+                  setShareCreating(false)
+                }
+              }}
+              disabled={!shareTarget || shareCreating}
+            >
+              {shareCreating ? "Creating..." : "Create link"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

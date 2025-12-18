@@ -53,7 +53,7 @@ export default function RootLayout({
                       <AppHeader />
 
                       <div className="flex flex-1 overflow-hidden pt-(--header-total-height)">
-                        <div className="flex gap-2 p-2 w-full h-full">
+                        <div className="flex gap-0 p-2 w-full h-full">
                           <PolicyPanel />
 
                           <main className="flex-1 min-w-0 overflow-hidden">
