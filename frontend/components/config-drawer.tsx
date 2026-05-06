@@ -6,6 +6,8 @@ import { Drawer } from "vaul";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { useSettings } from "@/lib/settings-context";
+import { usePolicies } from "@/components/files-list";
+import { OPAVM_DOCUMENTATION } from "@/lib/opavm-docs";
 import { 
   Gear, 
   TextAa, 
@@ -16,6 +18,8 @@ import {
   ArrowsClockwise,
   CheckCircle,
   ArrowSquareOut,
+  Terminal,
+  Book,
 } from "phosphor-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -122,6 +126,7 @@ export const ConfigDrawer: React.FC<Props> = function ConfigDrawer(props) {
     isCheckingUpdates,
     resetSettings,
   } = useSettings();
+  const { showVirtualDocument } = usePolicies();
 
   const isControlled = props.open !== undefined;
   const open = isControlled ? props.open! : internalOpen;
@@ -136,6 +141,18 @@ export const ConfigDrawer: React.FC<Props> = function ConfigDrawer(props) {
       toast.success("Settings reset to defaults");
     }
   }, [resetSettings]);
+
+  const handleShowOpavmDocs = useCallback(() => {
+    showVirtualDocument({
+      id: "opavm-docs",
+      name: "OPAVM.md",
+      content: OPAVM_DOCUMENTATION,
+      language: "markdown",
+      readOnly: true,
+    });
+    setOpen(false);
+    toast.info("Showing OPA CLI installation guide");
+  }, [showVirtualDocument]);
 
   return (
     <Drawer.Root direction="right" open={open} onOpenChange={setOpen}>
@@ -325,7 +342,35 @@ export const ConfigDrawer: React.FC<Props> = function ConfigDrawer(props) {
               <div className="border-t border-dashed border-border" />
 
               {/* ============================================================ */}
-              {/* 3. Updates */}
+              {/* 3. OPA CLI */}
+              {/* ============================================================ */}
+              <section>
+                <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">
+                  <Terminal weight="duotone" className="w-4 h-4" />
+                  OPA CLI
+                </h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Install and manage OPA versions using opavm.
+                </p>
+
+                <div className="space-y-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs w-full justify-start"
+                    onClick={handleShowOpavmDocs}
+                  >
+                    <Book className="w-3 h-3 mr-2" />
+                    Install OPA CLI
+                  </Button>
+                </div>
+              </section>
+
+              {/* Dashed separator */}
+              <div className="border-t border-dashed border-border" />
+
+              {/* ============================================================ */}
+              {/* 4. Updates */}
               {/* ============================================================ */}
               <section>
                 <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-2">

@@ -8,16 +8,20 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+# Install system dependencies (Python for opavm)
+RUN apt-get update && apt-get install -y python3-pip python3-venv && rm -rf /var/lib/apt/lists/*
 
-# Install OPA binary for formatting, testing and eval
-RUN wget -O /usr/local/bin/opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static \
-    && chmod 755 /usr/local/bin/opa
+# Install opavm
+RUN pip3 install opavm --break-system-packages
 
-# Install Regal binary for linting
-RUN wget -O /usr/local/bin/regal https://github.com/open-policy-agent/regal/releases/download/v0.37.0/regal_Linux_x86_64 \
-    && chmod 755 /usr/local/bin/regal
+# Install specific OPA version via opavm (v1.2.0 is current stable)
+RUN opavm install 1.2.0 && opavm use 1.2.0
+
+# Install specific Regal version via opavm (v0.38.0 is current stable)
+RUN opavm install regal 0.38.0 && opavm use 0.38.0 --tool regal
+
+# Add opavm shims to PATH
+ENV PATH="/root/.opavm/shims:${PATH}"
 
 # Copy source code
 COPY src/ ./src/

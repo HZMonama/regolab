@@ -10,20 +10,22 @@ import { parseJsonToSchema } from '@/lib/data-context';
 import type { RegoDataContext } from 'codemirror-lang-rego';
 
 export default function Home() {
-  const { 
-    selected, 
-    loadPolicy, 
-    activePolicyContent, 
-    setActivePolicyContent, 
-    output, 
+  const {
+    selected,
+    loadPolicy,
+    activePolicyContent,
+    setActivePolicyContent,
+    output,
     evaluationTimeMs,
-    activePanel, 
-    setActivePanel, 
+    activePanel,
+    setActivePanel,
     errors,
     lintDiagnostics,
     setLintDiagnostics,
     testResults,
-    testSummary
+    testSummary,
+    virtualDocument,
+    clearVirtualDocument
   } = usePolicies();
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   const [isTestEditorVisible, setIsTestEditorVisible] = useState(false);
@@ -38,6 +40,10 @@ export default function Home() {
 
   useEffect(() => {
     if (selected) {
+      // Clear virtual document when a real policy is selected
+      if (virtualDocument) {
+        clearVirtualDocument();
+      }
       loadPolicy(selected).then((files) => {
         if (files) {
           setActivePolicyContent(files);
@@ -48,7 +54,7 @@ export default function Home() {
         }
       });
     }
-  }, [selected, loadPolicy, setActivePolicyContent]);
+  }, [selected, loadPolicy, setActivePolicyContent, virtualDocument, clearVirtualDocument]);
 
   // Handle lint diagnostics from the code editor
   const handleLintDiagnostics = useCallback((diagnostics: LintDiagnostic[]) => {
@@ -77,33 +83,54 @@ export default function Home() {
             isPanelVisible ? "md:basis-3/5" : "md:basis-full"
           )}>
             <div className="h-full w-full relative flex flex-col">
-              {/* Policy Editor */}
+              {/* Policy Editor (or Virtual Document) */}
               <div className={cn(
                 "relative transition-[flex] duration-200 ease-linear overflow-hidden",
                 isTestEditorVisible ? "flex-1" : "flex-1"
               )} style={{ flex: isTestEditorVisible ? '1 1 50%' : '1 1 100%' }}>
-                <CodeEditor
-                  value={activePolicyContent.policy}
-                  onChange={(v) => setActivePolicyContent(prev => ({ ...prev, policy: v }))}
-                  language="rego"
-                  height="100%"
-                  onTogglePanel={() => setIsPanelVisible(!isPanelVisible)}
-                  isPanelVisible={isPanelVisible}
-                  onLintDiagnostics={handleLintDiagnostics}
-                  enableLinting={true}
-                  onToggleTestEditor={() => setIsTestEditorVisible(!isTestEditorVisible)}
-                  isTestEditorVisible={isTestEditorVisible}
-                  showTestToggle={true}
-                  dataContext={dataContext}
-                />
+                {virtualDocument ? (
+                  <CodeEditor
+                    value={virtualDocument.content}
+                    onChange={() => {}}
+                    language={virtualDocument.language}
+                    height="100%"
+                    readOnly={virtualDocument.readOnly}
+                    onTogglePanel={() => setIsPanelVisible(!isPanelVisible)}
+                    isPanelVisible={isPanelVisible}
+                    enableLinting={false}
+                    showTestToggle={false}
+                  />
+                ) : (
+                  <CodeEditor
+                    value={activePolicyContent.policy}
+                    onChange={(v) => setActivePolicyContent(prev => ({ ...prev, policy: v }))}
+                    language="rego"
+                    height="100%"
+                    onTogglePanel={() => setIsPanelVisible(!isPanelVisible)}
+                    isPanelVisible={isPanelVisible}
+                    onLintDiagnostics={handleLintDiagnostics}
+                    enableLinting={true}
+                    onToggleTestEditor={() => setIsTestEditorVisible(!isTestEditorVisible)}
+                    isTestEditorVisible={isTestEditorVisible}
+                    showTestToggle={true}
+                    dataContext={dataContext}
+                  />
+                )}
               </div>
 
+              {/* Virtual Document Label */}
+              {virtualDocument && (
+                <div className="absolute top-2 left-2 z-10 text-xs text-emerald-400 font-medium bg-card/90 px-2 py-1 rounded border border-emerald-500/50">
+                  {virtualDocument.name}
+                </div>
+              )}
+
               {/* Test Editor (conditionally visible) */}
-              {isTestEditorVisible && (
+              {isTestEditorVisible && !virtualDocument && (
                 <>
                   {/* Divider */}
                   <div className="h-px bg-sidebar-border shrink-0" />
-                  
+
                   {/* Test Editor Panel */}
                   <div className="flex-1 relative overflow-hidden" style={{ flex: '1 1 50%' }}>
                     <CodeEditor

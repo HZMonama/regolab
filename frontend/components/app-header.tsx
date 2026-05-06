@@ -34,7 +34,7 @@ export function AppHeader() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 h-(--header-total-height)">
-      <div className="max-w-7xl mx-2 mt-(--header-offset) h-(--header-height) flex items-center px-2 bg-card shadow-sm rounded-md border">
+      <div className="w-full mt-(--header-offset) h-(--header-height) flex items-center px-2 bg-card shadow-sm border-b">
         <div className="flex h-full items-center">
           <PolicyPanelToggle />
         </div>

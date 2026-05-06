@@ -6,27 +6,170 @@ import os from 'os';
 
 const execAsync = promisify(exec);
 
-// Cache the resolved OPA executable path
+// Cache the resolved OPA executable path and opavm status
 let opaExecutable = null;
+let opavmAvailable = null;
+let opavmOpaPath = null;
+
+/**
+ * Check if opavm is available in PATH
+ * @returns {Promise<boolean>}
+ */
+async function isOpavmAvailable() {
+  if (opavmAvailable !== null) {
+    return opavmAvailable;
+  }
+
+  try {
+    await execAsync('opavm current', { timeout: 5000 });
+    opavmAvailable = true;
+    return true;
+  } catch {
+    opavmAvailable = false;
+    return false;
+  }
+}
+
+/**
+ * Find .opa-version file by walking up directory tree
+ * @param {string} startDir - Directory to start searching from
+ * @returns {Promise<string|null>} - Path to .opa-version file or null
+ */
+async function findOpaVersionFile(startDir) {
+  let currentDir = path.resolve(startDir);
+  const root = path.parse(currentDir).root;
+
+  while (currentDir !== root) {
+    const versionFile = path.join(currentDir, '.opa-version');
+    try {
+      await fs.access(versionFile);
+      return versionFile;
+    } catch {
+      // File doesn't exist, continue to parent
+    }
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) break;
+    currentDir = parentDir;
+  }
+
+  return null;
+}
+
+/**
+ * Read the pinned OPA version from .opa-version file
+ * @param {string} startDir - Directory to start searching from
+ * @returns {Promise<{version: string, source: string}|null>}
+ */
+async function getPinnedOpaVersion(startDir) {
+  const versionFile = await findOpaVersionFile(startDir);
+  if (!versionFile) {
+    return null;
+  }
+
+  try {
+    const content = await fs.readFile(versionFile, 'utf-8');
+    const version = content.trim();
+    if (version) {
+      return {
+        version,
+        source: `pinned via ${path.relative(process.cwd(), versionFile) || '.opa-version'}`
+      };
+    }
+  } catch (error) {
+    console.warn(`Warning: Failed to read .opa-version file: ${error.message}`);
+  }
+
+  return null;
+}
+
+/**
+ * Get OPA path using opavm
+ * @param {string|null} workingDir - Working directory for version resolution
+ * @returns {Promise<{path: string, version: string, source: string}|null>}
+ */
+async function getOpaPathViaOpavm(workingDir = null) {
+  if (!await isOpavmAvailable()) {
+    return null;
+  }
+
+  const cwd = workingDir || process.cwd();
+
+  // Check if there's a pinned version
+  const pinned = await getPinnedOpaVersion(cwd);
+
+  try {
+    // Use opavm which to get the binary path
+    const { stdout } = await execAsync('opavm which', {
+      timeout: 10000,
+      cwd
+    });
+    const binaryPath = stdout.trim();
+
+    if (binaryPath) {
+      // Verify the binary exists
+      await fs.access(binaryPath);
+
+      // Get version info from opa
+      const { stdout: versionOutput } = await execAsync(`"${binaryPath}" version`, { timeout: 5000 });
+      const versionMatch = versionOutput.match(/Version:\s*(\S+)/);
+      const version = versionMatch ? versionMatch[1] : 'unknown';
+
+      return {
+        path: binaryPath,
+        version,
+        source: pinned ? pinned.source : 'global default (via opavm)'
+      };
+    }
+  } catch (error) {
+    // opavm which might fail if no version is configured
+    if (error.message?.includes('not installed') || error.message?.includes('not configured')) {
+      console.log('opavm: No OPA version configured, falling back to other sources');
+    } else {
+      console.warn(`Warning: opavm which failed: ${error.message}`);
+    }
+  }
+
+  return null;
+}
 
 /**
  * Find the OPA executable path
  * Checks multiple locations in order of priority
+ * @param {string|null} workingDir - Working directory for version resolution
  * @returns {Promise<string>} Path to OPA executable
  */
-async function findOpaExecutable() {
+async function findOpaExecutable(workingDir = null) {
   if (opaExecutable) {
     return opaExecutable;
   }
 
-  // Locations to check (in order of priority)
+  // Priority 1: Check for opavm-managed OPA
+  const opavmPath = await getOpaPathViaOpavm(workingDir);
+  if (opavmPath) {
+    opaExecutable = opavmPath.path;
+    console.log(`Found OPA via opavm: ${opaExecutable} (${opavmPath.source}, version ${opavmPath.version})`);
+    return opaExecutable;
+  }
+
+  // Priority 2: Environment variable override
+  if (process.env.OPA_PATH) {
+    try {
+      await fs.access(process.env.OPA_PATH, fs.constants.X_OK).catch(() => fs.access(process.env.OPA_PATH));
+      opaExecutable = process.env.OPA_PATH;
+      console.log(`Found OPA via OPA_PATH: ${opaExecutable}`);
+      return opaExecutable;
+    } catch {
+      console.warn(`Warning: OPA_PATH set to ${process.env.OPA_PATH} but file not accessible`);
+    }
+  }
+
+  // Priority 3: Standard locations
   const candidates = [
     // Docker container location (Linux)
     '/usr/local/bin/opa',
     // Common Windows locations
     'C:\\Tools\\OPA\\opa.exe',
     'C:\\Program Files\\OPA\\opa.exe',
-    process.env.OPA_PATH, // Environment variable override
     // Fall back to PATH lookup
     process.platform === 'win32' ? 'opa.exe' : 'opa',
   ].filter(Boolean);
@@ -40,7 +183,7 @@ async function findOpaExecutable() {
         console.log(`Found OPA at: ${opaExecutable}`);
         return opaExecutable;
       }
-      
+
       // For non-absolute paths, try running it
       await execAsync(`"${candidate}" version`, { timeout: 5000 });
       opaExecutable = candidate;
@@ -52,9 +195,37 @@ async function findOpaExecutable() {
   }
 
   throw new Error(
-    'OPA executable not found. Install OPA or set OPA_PATH environment variable. ' +
-    'Checked: ' + candidates.join(', ')
+    'OPA executable not found. Install OPA via opavm (`pip install opavm && opavm install latest`) ' +
+    'or set OPA_PATH environment variable.'
   );
+}
+
+/**
+ * Execute OPA command, optionally using opavm exec
+ * @param {string[]} args - OPA arguments
+ * @param {object} options - Execution options
+ * @returns {Promise<{stdout: string, stderr: string}>}
+ */
+async function execOpa(args, options = {}) {
+  const cwd = options.cwd || process.cwd();
+  const timeout = options.timeout || 30000;
+
+  // Check if we should use opavm exec
+  if (await isOpavmAvailable()) {
+    // Check if there's a pinned version file
+    const hasPinnedVersion = await findOpaVersionFile(cwd);
+
+    if (hasPinnedVersion) {
+      // Use opavm exec to ensure correct version is used
+      const cmd = `opavm exec -- ${args.join(' ')}`;
+      return execAsync(cmd, { timeout, cwd });
+    }
+  }
+
+  // Fall back to direct OPA execution
+  const opa = await findOpaExecutable(cwd);
+  const cmd = `"${opa}" ${args.join(' ')}`;
+  return execAsync(cmd, { timeout, cwd });
 }
 
 /**
@@ -65,7 +236,6 @@ async function findOpaExecutable() {
  * @returns {Promise<object>} Evaluation result
  */
 export async function evaluatePolicy(policy, input, data) {
-  const opa = await findOpaExecutable();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'opa-eval-'));
 
   try {
@@ -81,10 +251,9 @@ export async function evaluatePolicy(policy, input, data) {
     ]);
 
     // Run opa eval with JSON output
-    // Evaluate "data" to get all results from the policy
-    const { stdout, stderr } = await execAsync(
-      `"${opa}" eval -d "${policyPath}" -d "${dataPath}" -i "${inputPath}" --format json "data"`,
-      { timeout: 30000 }
+    const { stdout, stderr } = await execOpa(
+      ['eval', '-d', policyPath, '-d', dataPath, '-i', inputPath, '--format', 'json', 'data'],
+      { cwd: tempDir, timeout: 30000 }
     ).catch((error) => {
       // OPA eval may return non-zero for policy errors
       if (error.stderr) {
@@ -118,7 +287,6 @@ export async function evaluatePolicy(policy, input, data) {
 }
 
 export async function formatPolicy(policy) {
-  const opa = await findOpaExecutable();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'opa-fmt-'));
 
   try {
@@ -126,7 +294,7 @@ export async function formatPolicy(policy) {
     await fs.writeFile(policyPath, policy);
 
     // opa fmt outputs the formatted code to stdout
-    const { stdout } = await execAsync(`"${opa}" fmt "${policyPath}"`, { timeout: 10000 });
+    const { stdout } = await execOpa(['fmt', policyPath], { cwd: tempDir, timeout: 10000 });
     return stdout;
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
@@ -135,17 +303,28 @@ export async function formatPolicy(policy) {
 
 /**
  * Get OPA version info
- * @returns {Promise<{available: boolean, version: string|null, path: string|null}>}
+ * @returns {Promise<{available: boolean, version: string|null, path: string|null, source?: string}>}
  */
 export async function getOpaVersion() {
   try {
+    // Try opavm first for detailed info
+    const opavmPath = await getOpaPathViaOpavm();
+    if (opavmPath) {
+      return {
+        available: true,
+        version: opavmPath.version,
+        path: opavmPath.path,
+        source: opavmPath.source,
+      };
+    }
+
     const opa = await findOpaExecutable();
     const { stdout } = await execAsync(`"${opa}" version`, { timeout: 5000 });
-    
+
     // Parse version from output like "Version: 1.10.1"
     const versionMatch = stdout.match(/Version:\s*(\S+)/);
     const version = versionMatch ? versionMatch[1] : 'unknown';
-    
+
     return {
       available: true,
       version,
@@ -169,7 +348,6 @@ export async function getOpaVersion() {
  * @returns {Promise<{results: Array, summary: {pass: number, fail: number, error: number, skip: number}}>}
  */
 export async function testPolicy(policy, testPolicy, data = '{}') {
-  const opa = await findOpaExecutable();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'opa-test-'));
 
   try {
@@ -188,9 +366,9 @@ export async function testPolicy(policy, testPolicy, data = '{}') {
     }
 
     // Run opa test with JSON output and verbose mode
-    const { stdout, stderr } = await execAsync(
-      `"${opa}" test "${tempDir}" --format json -v`,
-      { timeout: 30000 }
+    const { stdout, stderr } = await execOpa(
+      ['test', tempDir, '--format', 'json', '-v'],
+      { cwd: tempDir, timeout: 30000 }
     ).catch((error) => {
       // OPA test returns non-zero exit code when tests fail
       // but stdout still contains the JSON results
@@ -237,5 +415,41 @@ export async function testPolicy(policy, testPolicy, data = '{}') {
     return { results, summary };
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Get detailed opavm status information
+ * @returns {Promise<{available: boolean, which: string|null, current: string|null}>}
+ */
+export async function getOpavmStatus() {
+  const available = await isOpavmAvailable();
+
+  if (!available) {
+    return {
+      available: false,
+      which: null,
+      current: null,
+    };
+  }
+
+  try {
+    // Get which output
+    const { stdout: whichOutput } = await execAsync('opavm which', { timeout: 5000 }).catch(() => ({ stdout: '' }));
+
+    // Get current version
+    const { stdout: currentOutput } = await execAsync('opavm current', { timeout: 5000 }).catch(() => ({ stdout: '' }));
+
+    return {
+      available: true,
+      which: whichOutput.trim() || null,
+      current: currentOutput.trim() || null,
+    };
+  } catch {
+    return {
+      available: true,
+      which: null,
+      current: null,
+    };
   }
 }

@@ -161,9 +161,26 @@ export const evaluateRoutes = async (fastify) => {
     '/opa/status',
     async (request, reply) => {
       const status = await opaService.getOpaVersion();
-      reply.send({ 
-        success: true, 
+      reply.send({
+        success: true,
         ...status
+      });
+    }
+  );
+
+  // Check opavm status
+  fastify.get(
+    '/opa/opavm-status',
+    async (request, reply) => {
+      const [opaStatus, opavmStatus] = await Promise.all([
+        opaService.getOpaVersion(),
+        opaService.getOpavmStatus(),
+      ]);
+
+      reply.send({
+        success: true,
+        opa: opaStatus,
+        opavm: opavmStatus,
       });
     }
   );

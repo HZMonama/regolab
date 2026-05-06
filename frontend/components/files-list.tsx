@@ -3,11 +3,19 @@
 import * as React from "react"
 import { toast } from "sonner"
 import { Popover, PopoverContent } from "@/components/ui/popover"
-import { Pencil, Trash, DownloadSimple, FileText } from "phosphor-react"
+import { Pencil, Trash, DownloadSimple, FileText, X, Book } from "phosphor-react"
 import { Editable, EditableArea, EditableInput, EditablePreview } from "@/components/ui/editable"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { LintDiagnostic } from "./code-editor"
 import type { ErrorItem } from "./editor-panels"
+
+interface VirtualDocument {
+  id: string
+  name: string
+  content: string
+  language: string
+  readOnly: boolean
+}
 
 interface PoliciesContextValue {
   policies: string[]
@@ -38,6 +46,9 @@ interface PoliciesContextValue {
   setTestResults: (results: TestResult[]) => void
   testSummary: TestSummary | null
   setTestSummary: (summary: TestSummary | null) => void
+  virtualDocument: VirtualDocument | null
+  showVirtualDocument: (doc: VirtualDocument) => void
+  clearVirtualDocument: () => void
 }
 
 export interface TestResult {
@@ -82,6 +93,17 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
   const [testResults, setTestResults] = React.useState<TestResult[]>([])
   const [testSummary, setTestSummary] = React.useState<TestSummary | null>(null)
   const [evaluationTimeMs, setEvaluationTimeMs] = React.useState<number | null>(null)
+  const [virtualDocument, setVirtualDocument] = React.useState<VirtualDocument | null>(null)
+
+  const showVirtualDocument = React.useCallback((doc: VirtualDocument) => {
+    setVirtualDocument(doc)
+    // Deselect any real policy to show the virtual document
+    setSelected(null)
+  }, [])
+
+  const clearVirtualDocument = React.useCallback(() => {
+    setVirtualDocument(null)
+  }, [])
 
   const fetchList = React.useCallback(async (signal?: AbortSignal) => {
     try {
@@ -397,18 +419,18 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
   }, [selected, activePolicyContent]);
 
   const value = React.useMemo(
-    () => ({ 
-      policies, 
-      selected, 
-      setSelected, 
+    () => ({
+      policies,
+      selected,
+      setSelected,
       activePolicyContent,
       setActivePolicyContent,
-      refresh, 
-      createPolicy, 
-      loadPolicy, 
-      savePolicy, 
+      refresh,
+      createPolicy,
+      loadPolicy,
+      savePolicy,
       renamePolicy,
-      deletePolicy, 
+      deletePolicy,
       downloadPolicy,
       handleEvaluate,
       handleFormat,
@@ -425,9 +447,12 @@ export function PoliciesProvider({ children }: { children: React.ReactNode }) {
       testResults,
       setTestResults,
       testSummary,
-      setTestSummary
+      setTestSummary,
+      virtualDocument,
+      showVirtualDocument,
+      clearVirtualDocument
     }),
-    [policies, selected, activePolicyContent, refresh, createPolicy, loadPolicy, savePolicy, renamePolicy, deletePolicy, downloadPolicy, output, evaluationTimeMs, handleEvaluate, handleFormat, handleTest, activePanel, errors, lintDiagnostics, testResults, testSummary]
+    [policies, selected, activePolicyContent, refresh, createPolicy, loadPolicy, savePolicy, renamePolicy, deletePolicy, downloadPolicy, output, evaluationTimeMs, handleEvaluate, handleFormat, handleTest, activePanel, errors, lintDiagnostics, testResults, testSummary, virtualDocument, showVirtualDocument, clearVirtualDocument]
   )
 
   return (
@@ -465,9 +490,12 @@ export function FilesList({ className }: { className?: string }) {
     setTestResults: () => {},
     testSummary: null as TestSummary | null,
     setTestSummary: () => {},
+    virtualDocument: null as VirtualDocument | null,
+    showVirtualDocument: () => {},
+    clearVirtualDocument: () => {},
   }
 
-  const { policies, selected, setSelected, renamePolicy, deletePolicy, downloadPolicy } = ctx
+  const { policies, selected, setSelected, renamePolicy, deletePolicy, downloadPolicy, virtualDocument, clearVirtualDocument } = ctx
 
   const [hovered, setHovered] = React.useState<string | null>(null)
   const [editingId, setEditingId] = React.useState<string | null>(null)
@@ -506,6 +534,32 @@ export function FilesList({ className }: { className?: string }) {
     <div className={className}>
       <h4 className="sr-only">Files</h4>
       <ul className="flex flex-col gap-1 overflow-y-auto flex-1 min-h-0">
+        {/* Virtual Document Entry */}
+        {virtualDocument && (
+          <li key={virtualDocument.id}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className="w-full flex items-center gap-2 rounded-md px-2 py-1 text-sm group cursor-pointer bg-emerald-600/20 text-emerald-400 border border-emerald-500/30"
+                >
+                  <Book size={16} className="shrink-0" />
+                  <span className="flex-1 truncate">{virtualDocument.name}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearVirtualDocument();
+                    }}
+                    className="opacity-100 p-1 rounded hover:bg-emerald-600/30"
+                    title="Close"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">{virtualDocument.name}</TooltipContent>
+            </Tooltip>
+          </li>
+        )}
         {policies.map((id) => (
           <li key={id}>
             <Tooltip>

@@ -6,6 +6,7 @@ import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, undo, redo, indentWithTab, indentLess } from "@codemirror/commands";
 import { linter, type Diagnostic } from "@codemirror/lint";
 import { json } from "@codemirror/lang-json";
+import { markdown } from "@codemirror/lang-markdown";
 import { rego, setRegoDataContext, regoDataContext, type RegoDataContext } from "codemirror-lang-rego";
 import { dataSourceExtension } from "@/lib/cm-data-source";
 import { githubDark } from "@fsegurai/codemirror-theme-github-dark";
@@ -211,6 +212,8 @@ export function CodeEditor({
       if (shouldLint) {
         extensions.push(createRegoLinter());
       }
+    } else if (language === "markdown") {
+      extensions.push(markdown());
     } else {
       // Fallback: plain text (no extra language extension)
     }

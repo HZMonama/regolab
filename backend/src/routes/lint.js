@@ -45,4 +45,21 @@ export const lintRoutes = async (fastify) => {
       });
     }
   );
+
+  // Check Regal opavm status
+  fastify.get(
+    '/regal/opavm-status',
+    async (request, reply) => {
+      const [regalStatus, opavmStatus] = await Promise.all([
+        regalService.checkRegalAvailable(),
+        regalService.getOpavmStatus(),
+      ]);
+
+      reply.send({
+        success: true,
+        regal: regalStatus,
+        opavm: opavmStatus,
+      });
+    }
+  );
 };
