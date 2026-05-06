@@ -8,7 +8,13 @@
     "v:current": "node scripts/version.js current",
     "v:patch": "node scripts/version.js bump patch",
     "v:minor": "node scripts/version.js bump minor",
-    "v:major": "node scripts/version.js bump major"
+    "v:major": "node scripts/version.js bump major",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   },
   "description": "RegoLab - Policy as Code Sandbox"
 }
